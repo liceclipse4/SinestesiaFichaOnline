@@ -392,6 +392,8 @@ build();
 </script>
 <script>
 (function(){
+if(window.__sinFix)return;window.__sinFix=1;
+if(/calcNovo|calcOrig/.test(calc.toString())){alert('Existe um script de correções antigo nesta ficha. Apague-o e deixe só este.');return}
 const css=String.raw`
 .cor{position:fixed;inset:0;pointer-events:none;z-index:40;opacity:0;transition:opacity 1s;background:radial-gradient(ellipse at center,transparent 45%,rgba(60,0,90,calc(var(--k,0)*.07)) 75%,rgba(20,0,20,calc(var(--k,0)*.12)) 100%)}
 .cor::before{content:"";position:absolute;inset:0;opacity:calc(var(--k,0)*.12);background:repeating-linear-gradient(0deg,transparent 0 2px,rgba(0,0,0,.35) 2px 3px)}
@@ -433,21 +435,43 @@ html[data-c6] .card{background:linear-gradient(135deg,#2a0513,#14020a)}
 html[data-c6] main>section:nth-child(odd){rotate:-.6deg}
 html[data-c6] main>section:nth-child(even){rotate:.5deg}
 @media(prefers-reduced-motion:reduce){html[data-c1] *,.cor::after{animation:none!important}}
-@media print{.cor{display:none}html[data-c1] *{animation:none!important;filter:none!important;rotate:none!important}html[data-c1]{--tx:#000;--mu:#444;--ln:#bbb;--ac:#000;--sg:#333;--rd:#b00;--pn:#fff;--pn2:#fff}html[data-c1] body,html[data-c1] header{background:#fff!important}html[data-c1] input,html[data-c1] select,html[data-c1] textarea,html[data-c1] .card{background:#fff!important;color:#000!important}html[data-c1] h1{background:none!important;color:#000!important;-webkit-text-fill-color:#000!important}}
+.bar .addtog{background:linear-gradient(135deg,#7c3aed,#4c7dff);color:#fff;border:0;padding:9px 18px;font-size:16px}
+.cpanel{margin-top:12px;padding:14px;border:2px solid var(--sg);border-radius:12px;background:var(--pn2);box-shadow:0 6px 20px rgba(76,60,160,.2)}
+.cpanel[hidden]{display:none}
+.cph{display:flex;gap:8px}.cph input{flex:1;min-width:0}
+.ctiles{display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));margin-top:14px}
+.ctile{display:flex;flex-direction:column;align-items:center;gap:4px;padding:20px 12px;border-radius:14px;border:0;background:var(--cc)!important;color:#fff;box-shadow:0 4px 14px color-mix(in srgb,var(--cc) 45%,transparent);transition:transform .12s}
+.ctile:hover{transform:translateY(-3px) scale(1.02)}
+.ctile .ico{font-size:34px;line-height:1}.ctile b{font:800 20px "Bricolage Grotesque",sans-serif}.ctile small{opacity:.9;font-size:13px}
+.cback{margin:14px 0 0}
+.ch{display:flex;align-items:baseline;gap:10px;margin:16px 0 8px;padding:8px 14px;border-radius:8px;background:var(--cc);color:#fff;font:800 18px "Bricolage Grotesque",sans-serif;box-shadow:0 3px 10px color-mix(in srgb,var(--cc) 40%,transparent)}
+.ch small{font:600 13px "Source Sans 3",sans-serif;opacity:.9;text-transform:uppercase;letter-spacing:1px}
+.cgrid{display:grid;gap:8px;grid-template-columns:repeat(auto-fill,minmax(190px,1fr))}
+.ci{display:flex;flex-direction:column;align-items:flex-start;gap:3px;text-align:left;padding:8px 28px 8px 12px;border-left:5px solid var(--cc);position:relative;transition:transform .12s}
+.ci:hover{transform:translateY(-2px);border-color:var(--cc)}
+.ci b{font:800 16px "Bricolage Grotesque",sans-serif}
+.ci .bd{font-size:12px;font-weight:600;color:var(--cc)}
+.ci em{font-style:normal;font-size:12px;color:var(--mu);font-weight:400;line-height:1.3}
+.ci::after{content:"+";position:absolute;right:10px;top:4px;font:800 18px sans-serif;color:var(--cc)}
+.ci.added{background:var(--cc)!important;color:#fff}.ci.added::after{content:"\2713";color:#fff}.ci.added .bd,.ci.added em{color:#fff}
+.card.prot{border-left-color:#4c7dff}
+@media print{.cor{display:none}html[data-c1] *{animation:none!important;filter:none!important;rotate:none!important}html[data-c1]{--tx:#000;--mu:#444;--ln:#bbb;--ac:#000;--sg:#333;--rd:#b00;--pn:#fff;--pn2:#fff}html[data-c1] body,html[data-c1] header{background:#fff!important}html[data-c1] input,html[data-c1] select,html[data-c1] textarea,html[data-c1] .card{background:#fff!important;color:#000!important}html[data-c1] h1{background:none!important;color:#000!important;-webkit-text-fill-color:#000!important}.cpanel{display:none}}
 `;
 const st=document.createElement('style');st.textContent=css;document.head.appendChild(st);
-const ov=document.createElement('div');ov.className='cor';ov.setAttribute('aria-hidden','true');document.body.insertBefore(ov,document.body.firstChild);
+const ovl=document.createElement('div');ovl.className='cor';ovl.setAttribute('aria-hidden','true');document.body.insertBefore(ovl,document.body.firstChild);
 
-function corromper(){
- const n=S.sing||0,r=document.documentElement;
- r.style.setProperty('--k',n);
- for(let i=1;i<=6;i++)r.toggleAttribute('data-c'+i,n>=i);
-}
-
+/* ---------- corrupção + botão de desativar ---------- */
+let ON=true;try{ON=localStorage.getItem('sin-dist')!=='off'}catch(e){}
+function corromper(){const n=ON?(S.sing||0):0,r=document.documentElement;r.style.setProperty('--k',n);for(let i=1;i<=6;i++)r.toggleAttribute('data-c'+i,n>=i)}
+const th=document.querySelector('.themes'),sp=document.createElement('span'),bt=document.createElement('button');
+sp.className='sep';sp.textContent='Distorção da Singularidade:';bt.type='button';
+const paintBt=()=>{bt.textContent=ON?'Ativada':'Desativada';bt.setAttribute('aria-pressed',ON)};
+bt.onclick=()=>{ON=!ON;try{localStorage.setItem('sin-dist',ON?'on':'off')}catch(e){}paintBt();corromper()};
+th.append(sp,bt);paintBt();
 const G='▓▒░█▚▞¤§¶Ξ∆ΩЖ҉Ψ#@%&?!01',NO=/^(TEXTAREA|OPTION|SELECT|SCRIPT|STYLE|INPUT|BUTTON)$/;
 function glitch(){
- const k=S.sing||0;
- if(k>=3&&!matchMedia('(prefers-reduced-motion:reduce)').matches){
+ const k=ON?(S.sing||0):0;
+ if(k>=3&&!matchMedia('(prefers-reduced-motion:reduce)').matches&&!document.querySelector('[data-oi]')){
   const w=document.createTreeWalker($('main'),NodeFilter.SHOW_TEXT),L=[];
   for(let t;t=w.nextNode();)if(t.nodeValue.trim().length>3&&!NO.test(t.parentNode.tagName))L.push(t);
   for(let i=0;i<k-2&&L.length;i++){
@@ -459,10 +483,97 @@ function glitch(){
  setTimeout(glitch,Math.max(700,3200-k*400)*(.5+Math.random()));
 }
 
-const calcOriginal=calc;
-calc=function(){calcOriginal();corromper()};
-corromper();glitch();
+/* ---------- proteções -> defesa ---------- */
+const DEFN={'Uniforme':2,'Escudo':3,'Proteção leve':4,'Proteção pesada':6};
+const dfOf=t=>t.df!=null&&t.df!==''?(+t.df||0):(DEFN[t.n]||0);
+const PROT=()=>S.it.reduce((s,t)=>s+(t.eq!==false?dfOf(t):0),0);
+
+/* ---------- MOD proporcional (ajuste = diferença sobre o automático) ---------- */
+const ovp=(k,v)=>{
+ const r=S.ov&&S.ov[k]!=null?+(v+S.ov[k]).toFixed(4):v;
+ if(k==='pv'){if(S.pvA!==''&&(+S.pvA===S.pvMax||+S.pvA>r))S.pvA='';S.pvMax=r}
+ return r;
+};
+const edp=(k,auto,suf='',fmt)=>{
+ if(k==='def')auto+=PROT();
+ const cur=ovp(k,auto);
+ return EDIT==k?`<input type="number" step="any" class="ovin" data-oi="${k}" value="${cur}" placeholder="${auto}" aria-label="Novo valor (vazio = automático)">`:`${fmt?fmt(cur):cur}${suf}${mk(k)} <button type="button" class="mod noprint" data-mod="${k}" title="Modificar este valor">MOD</button>`;
+};
+document.addEventListener('change',e=>{
+ const i=e.target.closest&&e.target.closest('[data-oi]');if(!i)return;
+ e.stopImmediatePropagation();
+ const k=i.dataset.oi,t=i.value.trim();
+ if(t==='')delete S.ov[k];
+ else{const x=parseFloat(t.replace(',','.'));if(!isNaN(x)){const d=+(x-parseFloat(i.placeholder)).toFixed(4);if(d)S.ov[k]=d;else delete S.ov[k]}}
+ EDIT=null;calc();
+},true);
+
+/* troca ov/ed por parâmetros, sem editar o texto do calc */
+const calcNovo=new Function('ov','ed','return ('+calc.toString()+')')(ovp,edp);
+rolar=new Function('ovp','return ('+rolar.toString().replace('bIni()',"ovp('ini',iniAuto())")+')')(ovp);
+function fixLabel(){
+ const p=PROT();
+ document.querySelectorAll('#stats .box>span').forEach(s=>{if(/^Defesa/.test(s.textContent))s.textContent='Defesa (10 + DES'+(p?' + proteção '+p:'')+')'});
+ const n=$('#stnote');
+ if(n)n.textContent=n.textContent.replace('Clique em MOD ao lado de um valor para editá-lo à mão; * marca valor manual e deixar vazio volta ao automático.','Clique em MOD para ajustar um valor: o ajuste é um bônus ou penalidade fixo sobre o cálculo, então o valor continua subindo com nível, atributos e equipamento. * marca valor ajustado; deixar vazio remove o ajuste.');
+}
+calc=function(){calcNovo();fixLabel();corromper()};
+const fixOv=()=>{if(S.ovv!==2){S.ov={};S.ovv=2}};fixOv();
+const build0=build;build=function(){fixOv();build0()};
+
+/* ---------- itens: bônus de defesa + equipado ---------- */
+const lists0=lists;
+lists=function(){
+ lists0();
+ document.querySelectorAll('#it .card').forEach((c,i)=>{
+  const t=S.it[i];if(!t)return;
+  const d=dfOf(t);c.classList.toggle('prot',d>0);
+  c.querySelector('.g').insertAdjacentHTML('beforeend',`<label>Bônus de defesa<input type="number" min="0" data-df="${i}" value="${d}"></label>`);
+  c.querySelector(':scope>button').insertAdjacentHTML('beforebegin',`<label class="chk"><input type="checkbox" data-eq="${i}" ${t.eq!==false?'checked':''}> Equipado (conta na Defesa)</label>`);
+  c.querySelector('[data-df]').oninput=e=>{t.df=+e.target.value||0;c.classList.toggle('prot',t.df>0);calc()};
+  c.querySelector('[data-eq]').onchange=e=>{t.eq=e.target.checked;calc()};
+ });
+};
+
+/* ---------- catálogo: clique em "Adicionar item" ---------- */
+CAT.forEach(x=>{x[0]=x[0].replace('simpless','simples')});
+const CC={'Armas simples':['#16a34a','⚔'],'Armas complexas':['#e11d48','✦'],'Proteções':['#4c7dff','🛡'],'Itens gerais':['#f59e0b','🎒']};
+const TOPS=Object.keys(CC),tg=g=>g.replace(/ \(.*\)/,'');
+let CTAB='',CQ='';
+const selCat=$('#cat'),barOld=selCat.parentNode;selCat.style.display='none';
+const tog=document.createElement('button');tog.type='button';tog.className='addtog';tog.setAttribute('aria-expanded','false');tog.textContent='＋ Adicionar item';
+barOld.insertBefore(tog,barOld.firstChild);
+const box=document.createElement('div');box.className='cpanel noprint';box.hidden=true;
+box.innerHTML='<div class="cph"><input id="cbusca" type="search" placeholder="Buscar item ou arma..." aria-label="Buscar no catálogo"><button type="button" id="cfecha">Fechar</button></div><div id="clist"></div>';
+barOld.parentNode.insertBefore(box,barOld.nextSibling);
+function paintCat(){
+ const q=CQ.trim().toLowerCase(),L=$('#clist');
+ if(!CTAB&&!q){L.innerHTML='<div class="ctiles">'+TOPS.map(t=>`<button type="button" class="ctile" data-ct="${t}" style="--cc:${CC[t][0]}"><span class="ico">${CC[t][1]}</span><b>${t}</b><small>${CAT.filter(x=>tg(x[0])==t).length} opções</small></button>`).join('')+'</div>';return}
+ let h=CTAB?'<button type="button" class="cback" data-ct="">← Categorias</button>':'';
+ [...new Set(CAT.map(x=>x[0]))].forEach(g=>{
+  if(CTAB&&tg(g)!=CTAB)return;
+  const I=CAT.map((x,i)=>[x,i]).filter(([x])=>x[0]==g&&(!q||(x[1]+' '+x[4]).toLowerCase().includes(q)));
+  if(!I.length)return;
+  const t=tg(g),sub=(g.match(/\((.*)\)/)||[])[1]||'';
+  h+=`<h3 class="ch" style="--cc:${CC[t][0]}"><span>${CC[t][1]} ${t}</span>${sub?`<small>${sub}</small>`:''}</h3><div class="cgrid">`+I.map(([x,i])=>`<button type="button" class="ci" data-ci="${i}" style="--cc:${CC[t][0]}"><b>${x[1]}</b><span class="bd">Peso ${x[2]} · Grau ${x[3]}${DEFN[x[1]]?` · DEF +${DEFN[x[1]]}`:''}</span>${x[4]?`<em>${esc(x[4])}</em>`:''}</button>`).join('')+'</div>';
+ });
+ L.innerHTML=h||'<p class="note">Nada encontrado.</p>';
+}
+const abrir=v=>{box.hidden=!v;tog.setAttribute('aria-expanded',v);tog.textContent=v?'✕ Fechar catálogo':'＋ Adicionar item';if(v){CTAB='';CQ='';$('#cbusca').value='';paintCat();$('#cbusca').focus()}};
+tog.onclick=()=>abrir(box.hidden);
+$('#cfecha').onclick=()=>abrir(false);
+box.onkeydown=e=>{if(e.key=='Escape')abrir(false)};
+$('#cbusca').oninput=e=>{CQ=e.target.value;paintCat()};
+box.addEventListener('click',e=>{
+ const t=e.target.closest('[data-ct]');
+ if(t){CTAB=t.dataset.ct;if(!CTAB){CQ='';$('#cbusca').value=''}paintCat();return}
+ const c=e.target.closest('[data-ci]');
+ if(c){const x=CAT[c.dataset.ci];S.it.push({n:x[1],p:x[2],g:x[3],o:x[4],eq:true});lists();calc();c.classList.add('added');setTimeout(()=>c.classList.remove('added'),900)}
+});
+
+glitch();lists();calc();
 })();
 </script>
+
 </body>
 </html>
