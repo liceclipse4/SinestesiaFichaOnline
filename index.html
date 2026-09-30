@@ -3,10 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<script>try{var t=localStorage.getItem('sin-tema');document.documentElement.dataset.tema=['claro','escuro','singular'].includes(t)?t:'claro'}catch(e){}</script>
 <title>Sinestesia o RPG - Ficha de personagem</title>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;800&family=Source+Sans+3:wght@400;600&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#14121d;--pn:#1d1a2c;--pn2:#26223a;--tx:#ece9f7;--mu:#9d97b8;--ln:#383352;--ac:#3fd0c9;--sg:#9b6bff;--rd:#ff6b7a}
+:root{color-scheme:light;--bg:#e8f2ff;--pn:rgba(255,255,255,.92);--pn2:#f4efff;--tx:#2a2350;--mu:#6b6394;--ln:#d8cdf5;--ac:#0a8f8a;--sg:#7c3aed;--rd:#e11d48}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--tx);font:16px/1.5 "Source Sans 3",system-ui,sans-serif}
 h1,h2{font-family:"Bricolage Grotesque",system-ui,sans-serif;margin:0}
@@ -49,9 +50,9 @@ label input,label select,label textarea,.lb input{width:100%}
 .d20 polygon{fill:var(--pn);stroke:var(--ac);stroke-width:4;stroke-linejoin:round}
 .d20 text{fill:var(--tx);font:800 30px "Bricolage Grotesque",sans-serif}
 .d20 text.sm{font-size:24px}
-.d20:hover polygon{fill:var(--pn2)}.d20.c20 polygon{stroke:#6bff9e;fill:#143526}.d20.c1 polygon{stroke:var(--rd);fill:#3a1820}
+.d20:hover polygon{fill:var(--pn2)}.d20.c20 polygon{stroke:#16a34a;fill:#d9f7e6}.d20.c1 polygon{stroke:var(--rd);fill:#ffe0e6}
 .box.sg{border-left-color:var(--sg)}.box.sg .ic{width:34px;height:34px;flex:none}.box.sg .ic polygon{fill:var(--sg);stroke:#d6c2ff;stroke-width:2;stroke-linejoin:round}
-.box.sg b{color:var(--sg)}.box .mini{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}.box.est{border-left-color:#ffb86b}.box.est b{color:#ffb86b}.box.est .ic{width:34px;height:34px;flex:none}.box.est .ic path{fill:#ffb86b}.box .mini button{padding:2px 10px}
+.box.sg b{color:var(--sg)}.box .mini{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}.box.est{border-left-color:#ffb86b}.box.est b{color:#d97706}.box.est .ic{width:34px;height:34px;flex:none}.box.est .ic path{fill:#ffb86b}.box .mini button{padding:2px 10px}
 .pf{display:grid;grid-template-columns:200px 1fr;gap:16px}
 .port{display:grid;gap:8px;align-content:start}
 #pimg{aspect-ratio:3/4;border:2px dashed var(--ln);border-radius:8px;background:var(--pn2) center/cover no-repeat;display:grid;place-items:center;color:var(--mu);font-size:14px;text-align:center;cursor:pointer;padding:8px}
@@ -59,13 +60,90 @@ label input,label select,label textarea,.lb input{width:100%}
 .stars{display:flex;gap:4px;margin:6px 0 2px}.star{padding:0 6px;font-size:26px;line-height:1.2;color:var(--mu);background:none;border:0}
 .star.on{color:var(--rd)}.star:hover{border:0;color:var(--rd)}
 @media(max-width:600px){.pf{grid-template-columns:1fr}.port{max-width:240px}}
-@media print{body{background:#fff;color:#000}header .bar,.noprint{display:none}section,.box,.card,.sk div{background:#fff;border-color:#999}input,select,textarea{background:#fff;color:#000;border-color:#bbb}.box b,.sk strong,.f b{color:#000}#pimg{border-color:#999}}
+
+body{background:linear-gradient(180deg,#cfe6ff 0%,#eadcff 40%,#ffe4ec 72%,#fff1d6 100%) fixed}
+header,main{position:relative;z-index:1}
+.bg{position:fixed;inset:0;overflow:hidden;pointer-events:none;z-index:5}
+.bg .bf{position:absolute;opacity:.6}
+.bf{color:var(--c,#9b6bff);animation:drift 16s ease-in-out infinite,flap .5s ease-in-out infinite alternate;filter:drop-shadow(0 2px 3px rgba(60,30,120,.25))}
+@keyframes drift{0%{transform:translate(0,0) rotate(-8deg)}25%{transform:translate(50px,-35px) rotate(7deg)}50%{transform:translate(12px,-80px) rotate(-5deg)}75%{transform:translate(-35px,-40px) rotate(9deg)}100%{transform:translate(0,0) rotate(-8deg)}}
+@keyframes flap{from{scale:1 1}to{scale:.55 1}}
+@media(prefers-reduced-motion:reduce){.bf{animation:none}}
+header{background:radial-gradient(circle at 12% 0%,#fff6b8 0,transparent 38%),linear-gradient(120deg,#ffd9ec 0%,#d6e8ff 50%,#e4d8ff 100%);overflow:hidden;border-bottom-width:8px;box-shadow:0 6px 24px rgba(124,58,237,.18)}
+.hero{display:flex;align-items:center;gap:16px}
+.emblem{width:clamp(64px,12vw,96px);flex:none;filter:drop-shadow(0 3px 6px rgba(124,58,237,.35));animation:pulse 4s ease-in-out infinite}
+@keyframes pulse{50%{transform:scale(1.06) rotate(4deg)}}
+@media(prefers-reduced-motion:reduce){.emblem{animation:none}}
+h1{background:linear-gradient(90deg,#e11d48,#f97316,#ca8a04,#16a34a,#0891b2,#4c6fff,#7c3aed);-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent;text-shadow:none}
+header p{color:#4a3f7a}
+header .hb1,header .hb2,header .hb3{position:absolute;width:56px;opacity:.95}
+.hb1{right:6%;top:14%}.hb2{right:16%;top:52%;width:40px!important;animation-delay:-4s,-1s}.hb3{right:26%;top:10%;width:34px!important;animation-delay:-8s,-2s}
+button{background:linear-gradient(135deg,#fff,#efe6ff);font-weight:600;box-shadow:0 1px 3px rgba(124,58,237,.15)}
+button:hover{border-color:var(--sg);box-shadow:0 2px 8px rgba(124,58,237,.3)}
+header .bar button{background:linear-gradient(135deg,#7c3aed,#4c7dff);color:#fff;border:0}
+header .bar button:hover{filter:brightness(1.1)}
+input,select,textarea{background:#fff}
+section{border-top:6px solid var(--sec,#9b6bff);box-shadow:0 4px 16px rgba(76,60,160,.12)}
+main>section:nth-child(7n+1){--sec:#ff6b7a}main>section:nth-child(7n+2){--sec:#ff9f43}main>section:nth-child(7n+3){--sec:#f4c430}main>section:nth-child(7n+4){--sec:#2ecc71}main>section:nth-child(7n+5){--sec:#1ab5b0}main>section:nth-child(7n+6){--sec:#4c7dff}main>section:nth-child(7n){--sec:#9b6bff}
+h2::before{content:"\2726";color:var(--sec,#9b6bff);margin-right:8px}
+.box{box-shadow:0 1px 4px rgba(76,60,160,.1)}
+.card{background:linear-gradient(135deg,#fff,#f7f2ff)}
+.sk div{border:1px solid var(--ln)}
+.star.on{color:#f59e0b;text-shadow:0 0 8px rgba(245,158,11,.5)}
+.box.w .star.on,.box.w b{color:var(--rd)}
+.note{color:#5b5285}
+
+/* temas */
+.lt{display:none}.em-s{display:none}
+.themes{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:12px;font-size:13px;font-weight:600;color:var(--mu)}
+.themes button{padding:4px 14px;border-radius:999px;font-size:13px}
+.themes button[aria-pressed=true]{background:linear-gradient(135deg,#7c3aed,#4c7dff);color:#fff;border-color:transparent}
+.bg .lt{position:absolute;opacity:.75}
+.lt{color:var(--c,#c084fc);animation:drift 14s ease-in-out infinite,zap 3.4s linear infinite;filter:drop-shadow(0 0 5px #a855f7) drop-shadow(0 0 14px #7c3aed)}
+@keyframes zap{0%,60%,66%,72%,100%{opacity:.85}62%,68%{opacity:.12}70%{opacity:1}}
+@media(prefers-reduced-motion:reduce){.lt{animation:none}}
+html[data-tema=escuro],html[data-tema=singular]{color-scheme:dark}
+html[data-tema=escuro]{--pn:rgba(31,28,48,.95);--pn2:#2b2745;--tx:#e4e0f2;--mu:#a7a1c8;--ln:#403a66;--ac:#5fd9d2;--sg:#a78bfa;--rd:#ff7f90}
+html[data-tema=singular]{--pn:rgba(10,4,20,.95);--pn2:#1a0b30;--tx:#efe3ff;--mu:#b197e0;--ln:#4c1d95;--ac:#c084fc;--sg:#a855f7;--rd:#ff4d6d}
+html[data-tema=escuro] body{background:linear-gradient(180deg,#14122a 0%,#1a1538 50%,#201636 100%) fixed}
+html[data-tema=singular] body{background:radial-gradient(circle at 20% 10%,rgba(124,58,237,.3),transparent 45%),radial-gradient(circle at 85% 70%,rgba(168,85,247,.22),transparent 50%),#000 fixed}
+html[data-tema=escuro] header{background:radial-gradient(circle at 12% 0%,rgba(255,220,120,.14) 0,transparent 38%),linear-gradient(120deg,#231c3f,#1b2440 50%,#2a1e4a);box-shadow:0 6px 24px rgba(0,0,0,.45)}
+html[data-tema=singular] header{background:radial-gradient(circle at 15% 0%,rgba(168,85,247,.45) 0,transparent 45%),linear-gradient(120deg,#000,#12032a 55%,#000);border-image:linear-gradient(90deg,#3b0764,#7c3aed,#d8b4fe,#7c3aed,#3b0764) 1;box-shadow:0 6px 30px rgba(124,58,237,.5)}
+html[data-tema=escuro] header p{color:#c4bde6}
+html[data-tema=singular] header p{color:#d8c6ff}
+html[data-tema=singular] h1{background:linear-gradient(90deg,#f5e9ff,#c084fc,#7c3aed,#c084fc,#f5e9ff);-webkit-background-clip:text;background-clip:text}
+html[data-tema=escuro] input,html[data-tema=escuro] select,html[data-tema=escuro] textarea{background:#1c1930}
+html[data-tema=singular] input,html[data-tema=singular] select,html[data-tema=singular] textarea{background:#0f0620}
+html[data-tema=escuro] button{background:linear-gradient(135deg,#2f2a4d,#26223f);box-shadow:none}
+html[data-tema=singular] button{background:linear-gradient(135deg,#240a45,#12051f);box-shadow:none}
+html[data-tema=escuro] .card{background:linear-gradient(135deg,#28243f,#221e38)}
+html[data-tema=singular] .card{background:linear-gradient(135deg,#1a0b30,#0d0519)}
+html[data-tema=escuro] .note,html[data-tema=singular] .note{color:var(--mu)}
+html[data-tema=escuro] section{box-shadow:0 4px 16px rgba(0,0,0,.35)}
+html[data-tema=singular] main>section{--sec:#a855f7;box-shadow:0 0 18px rgba(124,58,237,.3)}
+html[data-tema=escuro] .box.est b{color:#fbbf24}
+html[data-tema=singular] .box.est b{color:#e879f9}
+html[data-tema=escuro] .d20.c20 polygon,html[data-tema=singular] .d20.c20 polygon{fill:#0d3a24;stroke:#4ade80}
+html[data-tema=escuro] .d20.c1 polygon,html[data-tema=singular] .d20.c1 polygon{fill:#4a1420;stroke:var(--rd)}
+html[data-tema=escuro] .bg .bf{opacity:.4}
+html[data-tema] header .bar button{background:linear-gradient(135deg,#7c3aed,#4c7dff);color:#fff;border:0}
+html[data-tema=singular] header .bar button{background:linear-gradient(135deg,#6d28d9,#a855f7);box-shadow:0 0 10px rgba(168,85,247,.5)}
+html[data-tema=singular] .bf{display:none}
+html[data-tema=singular] .lt{display:block}
+html[data-tema=singular] .em-a{display:none}
+html[data-tema=singular] .em-s{display:block}
+@media print{.bg,.bf,.lt{display:none}html[data-tema]{--tx:#000;--mu:#444;--ln:#bbb;--ac:#000;--sg:#333;--rd:#b00;--pn:#fff;--pn2:#fff}html[data-tema] body{background:#fff!important}html[data-tema] header{background:#fff!important;box-shadow:none!important}html[data-tema] h1{background:none!important;color:#000!important;-webkit-text-fill-color:#000!important}html[data-tema] section,html[data-tema] .card,html[data-tema] .box,html[data-tema] input,html[data-tema] select,html[data-tema] textarea{background:#fff!important}html[data-tema] .note,html[data-tema] header p{color:#333!important}header{background:#fff}h1{background:none;color:#000;-webkit-text-fill-color:#000}section{border-top-color:#999;box-shadow:none}body{background:#fff;color:#000}header .bar,.noprint{display:none}section,.box,.card,.sk div{background:#fff;border-color:#999}input,select,textarea{background:#fff;color:#000;border-color:#bbb}.box b,.sk strong,.f b{color:#000}#pimg{border-color:#999}}
 </style>
 </head>
 <body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs><symbol id="bf" viewBox="0 0 64 48"><g fill="currentColor"><path d="M32 23C30 6 10 0 5 10c-3 8 8 16 27 13z"/><path d="M32 25C18 27 8 34 13 42c6 6 16-4 19-17z"/><path d="M32 23C34 6 54 0 59 10c3 8-8 16-27 13z"/><path d="M32 25C46 27 56 34 51 42c-6 6-16-4-19-17z"/></g><g fill="#fff" opacity=".55"><circle cx="15" cy="12" r="3.5"/><circle cx="49" cy="12" r="3.5"/><circle cx="19" cy="37" r="2.5"/><circle cx="45" cy="37" r="2.5"/></g><path d="M32 14v24" stroke="#3b2a5c" stroke-width="2.6" stroke-linecap="round"/><path d="M32 14c-2-5-5-7-7-8M32 14c2-5 5-7 7-8" fill="none" stroke="#3b2a5c" stroke-width="1.2" stroke-linecap="round"/></symbol><symbol id="bolt" viewBox="0 0 40 60"><polygon points="26,0 4,34 18,34 10,60 36,22 21,22" fill="currentColor"/></symbol></defs></svg>
+<div class="bg" aria-hidden="true"><svg class="bf" style="--c:#ff6b7a;left:4%;top:18%;width:44px;animation-delay:0s,0.0s" viewBox="0 0 64 48"><use href="#bf"/></svg><svg class="bf" style="--c:#ff9f43;left:90%;top:12%;width:38px;animation-delay:-2s,-0.5s" viewBox="0 0 64 48"><use href="#bf"/></svg><svg class="bf" style="--c:#9b6bff;left:8%;top:55%;width:52px;animation-delay:-5s,-1.25s" viewBox="0 0 64 48"><use href="#bf"/></svg><svg class="bf" style="--c:#1ab5b0;left:86%;top:48%;width:46px;animation-delay:-7s,-1.75s" viewBox="0 0 64 48"><use href="#bf"/></svg><svg class="bf" style="--c:#4c7dff;left:14%;top:86%;width:40px;animation-delay:-3s,-0.75s" viewBox="0 0 64 48"><use href="#bf"/></svg><svg class="bf" style="--c:#f4c430;left:78%;top:82%;width:50px;animation-delay:-9s,-2.25s" viewBox="0 0 64 48"><use href="#bf"/></svg><svg class="bf" style="--c:#ff78c8;left:48%;top:92%;width:36px;animation-delay:-4s,-1.0s" viewBox="0 0 64 48"><use href="#bf"/></svg><svg class="bf" style="--c:#2ecc71;left:55%;top:30%;width:34px;animation-delay:-6s,-1.5s" viewBox="0 0 64 48"><use href="#bf"/></svg><svg class="lt" style="--c:#c084fc;left:5%;top:20%;width:34px;animation-delay:0s,0.0s" viewBox="0 0 40 60"><use href="#bolt"/></svg><svg class="lt" style="--c:#a855f7;left:90%;top:14%;width:28px;animation-delay:-2s,-1.4s" viewBox="0 0 40 60"><use href="#bolt"/></svg><svg class="lt" style="--c:#e9d5ff;left:9%;top:58%;width:38px;animation-delay:-5s,-3.5s" viewBox="0 0 40 60"><use href="#bolt"/></svg><svg class="lt" style="--c:#9333ea;left:87%;top:50%;width:32px;animation-delay:-7s,-4.8999999999999995s" viewBox="0 0 40 60"><use href="#bolt"/></svg><svg class="lt" style="--c:#c084fc;left:15%;top:88%;width:30px;animation-delay:-3s,-2.0999999999999996s" viewBox="0 0 40 60"><use href="#bolt"/></svg><svg class="lt" style="--c:#d8b4fe;left:78%;top:84%;width:36px;animation-delay:-9s,-6.3s" viewBox="0 0 40 60"><use href="#bolt"/></svg><svg class="lt" style="--c:#a855f7;left:50%;top:93%;width:26px;animation-delay:-4s,-2.8s" viewBox="0 0 40 60"><use href="#bolt"/></svg><svg class="lt" style="--c:#e9d5ff;left:55%;top:30%;width:24px;animation-delay:-6s,-4.199999999999999s" viewBox="0 0 40 60"><use href="#bolt"/></svg></div>
 <header>
-<h1>Sinestesia o RPG</h1>
-<p>Ficha de personagem. Tudo é salvo automaticamente neste navegador.</p>
+<div class="themes noprint" role="group" aria-label="Tema da ficha"><span>Tema:</span><button type="button" data-tm="claro" onclick="setTema('claro')">Claro</button><button type="button" data-tm="escuro" onclick="setTema('escuro')">Escuro</button><button type="button" data-tm="singular" onclick="setTema('singular')">Singularidade</button></div>
+<div class="hero"><svg class="emblem em-a" viewBox="0 0 100 100" aria-hidden="true"><defs><linearGradient id="rg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ff6b7a"/><stop offset=".25" stop-color="#ffb347"/><stop offset=".5" stop-color="#f4e04d"/><stop offset=".7" stop-color="#3ddc97"/><stop offset=".85" stop-color="#4c7dff"/><stop offset="1" stop-color="#9b6bff"/></linearGradient></defs><polygon points="50.0,4.0 57.0,14.7 67.6,7.5 70.0,20.1 82.5,17.5 79.9,30.0 92.5,32.4 85.3,43.0 96.0,50.0 85.3,57.0 92.5,67.6 79.9,70.0 82.5,82.5 70.0,79.9 67.6,92.5 57.0,85.3 50.0,96.0 43.0,85.3 32.4,92.5 30.0,79.9 17.5,82.5 20.1,70.0 7.5,67.6 14.7,57.0 4.0,50.0 14.7,43.0 7.5,32.4 20.1,30.0 17.5,17.5 30.0,20.1 32.4,7.5 43.0,14.7" fill="url(#rg)" stroke="#fff" stroke-width="2.5" stroke-linejoin="round"/><circle cx="50" cy="50" r="27" fill="#fff"/><polygon points="50,26 56,43 74,43 60,54 65,72 50,61 35,72 40,54 26,43 44,43" fill="#7c3aed"/></svg>
+<svg class="emblem em-s" viewBox="0 0 100 100" aria-hidden="true"><polygon points="50.0,4.0 57.0,14.7 67.6,7.5 70.0,20.1 82.5,17.5 79.9,30.0 92.5,32.4 85.3,43.0 96.0,50.0 85.3,57.0 92.5,67.6 79.9,70.0 82.5,82.5 70.0,79.9 67.6,92.5 57.0,85.3 50.0,96.0 43.0,85.3 32.4,92.5 30.0,79.9 17.5,82.5 20.1,70.0 7.5,67.6 14.7,57.0 4.0,50.0 14.7,43.0 7.5,32.4 20.1,30.0 17.5,17.5 30.0,20.1 32.4,7.5 43.0,14.7" fill="#7c3aed" stroke="#e9d5ff" stroke-width="2.5" stroke-linejoin="round"/><circle cx="50" cy="50" r="27" fill="#0a0414"/><polygon points="55,22 35,55 49,55 43,80 67,42 53,42" fill="#e9d5ff"/></svg>
+<div><h1>Sinestesia o RPG</h1>
+<p>Ficha de personagem. Tudo é salvo automaticamente neste navegador. Que a esperança guie o seu herói.</p></div></div>
 <div class="bar">
 <button onclick="exportar()">Baixar ficha</button>
 <button onclick="$('#arq').click()">Abrir ficha</button>
@@ -73,6 +151,7 @@ label input,label select,label textarea,.lb input{width:100%}
 <button onclick="limpar()">Nova ficha</button>
 <input type="file" id="arq" accept=".json" hidden>
 </div>
+<svg class="bf hb1" style="--c:#ff6b7a" viewBox="0 0 64 48" aria-hidden="true"><use href="#bf"/></svg><svg class="bf hb2" style="--c:#4c7dff" viewBox="0 0 64 48" aria-hidden="true"><use href="#bf"/></svg><svg class="bf hb3" style="--c:#f4c430" viewBox="0 0 64 48" aria-hidden="true"><use href="#bf"/></svg><svg class="lt hb1" style="--c:#d8b4fe" viewBox="0 0 40 60" aria-hidden="true"><use href="#bolt"/></svg><svg class="lt hb2" style="--c:#a855f7" viewBox="0 0 40 60" aria-hidden="true"><use href="#bolt"/></svg><svg class="lt hb3" style="--c:#e9d5ff" viewBox="0 0 40 60" aria-hidden="true"><use href="#bolt"/></svg>
 </header>
 <main>
 <section><h2>Personagem</h2><div class="pf">
@@ -108,6 +187,8 @@ label input,label select,label textarea,.lb input{width:100%}
 </main>
 <script>
 const $=s=>document.querySelector(s);
+function setTema(t){if(!['claro','escuro','singular'].includes(t))t='claro';document.documentElement.dataset.tema=t;try{localStorage.setItem('sin-tema',t)}catch(e){}document.querySelectorAll('[data-tm]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.tm==t))}
+setTema(document.documentElement.dataset.tema);
 const AT=['FOR','DES','CON','INT','SAB','CAR'];
 const CL={
 Poderoso:{pv:18,pvn:4,es:5,esn:2,per:2,esp:3,est:2,f:{1:'Habilidade Sem Limite: desarmado 1d6 e +1 na margem de ameaça com arma',3:'A Força de um Super: soma FOR ou DES no dano, ataque extra com -2, desarmado 1d8',6:'Golpe Devastador: +5 Luta, Pontaria e dano, desarmado 1d10',12:'Corrente Destrutiva: ataque extra com +5 (e -5 na defesa), +1 margem de ameaça',18:'O Domínio de um Lutador: +20 ES, +5 em testes e dano em luta importante, desarmado 3d6'}},
