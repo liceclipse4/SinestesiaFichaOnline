@@ -24,7 +24,8 @@ h2{font-size:20px;margin-bottom:12px}
 label,.lb{display:flex;flex-direction:column;font-size:13px;color:var(--mu);gap:3px}
 label input,label select,label textarea,.lb input{width:100%}
 .stp{display:flex;gap:4px}.stp input{min-width:0}.stp button{padding:4px 14px;font-size:20px}
-[data-ov]{cursor:pointer;user-select:none;-webkit-user-select:none;touch-action:manipulation}
+.mod{font:600 11px 'Source Sans 3',sans-serif;padding:1px 6px;margin-left:4px;vertical-align:middle;color:var(--ac)}
+.ovin{width:84px!important;font-size:16px}
 .wide{grid-column:1/-1}
 .at{text-align:center}.at input{font-size:22px;text-align:center;font-weight:600}
 .st{display:grid;gap:10px;grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}
@@ -178,15 +179,13 @@ const sing=d=>{S.sing=Math.min(6,Math.max(0,S.sing+d));calc()};
 let M={pv:0,es:0,pf:0},LAST={};
 const ov=(k,v)=>S.ov&&S.ov[k]!=null?S.ov[k]:v;
 const oa=k=>`data-ov="${k}" tabindex="0" role="button" title="Dois cliques para editar"`,mk=k=>S.ov&&S.ov[k]!=null?'*':'';
-const OVN={pv:'PV máximo',es:'ES máximo',pf:'P.F. máximo',desl:'Deslocamento (m)',def:'Defesa'};
-function editOv(k){
- const v=prompt(OVN[k]+' (deixe vazio para voltar ao automático):',ov(k,k=='pv'?M.pv:k=='es'?M.es:k=='pf'?M.pf:k=='def'?10+mod('DES'):9));
- if(v===null)return;const t=v.trim();
- if(t==='')delete S.ov[k];else{const x=parseFloat(t.replace(',','.'));if(isNaN(x))return;S.ov[k]=x}
- calc();
-}
-$('#stats').addEventListener('click',e=>{const t=e.target.closest('[data-ov]');if(!t)return;const k=t.dataset.ov,n=Date.now();if(LAST.k==k&&n-LAST.t<450){LAST={};editOv(k)}else LAST={k,t:n}});
-$('#stats').addEventListener('keydown',e=>{const t=e.target.closest('[data-ov]');if(t&&e.key=='Enter')editOv(t.dataset.ov)});
+let EDIT=null;
+const ed=(k,auto,suf='',fmt)=>{const cur=ov(k,auto);return EDIT==k?`<input type="number" step="any" class="ovin" data-oi="${k}" value="${cur}" placeholder="${auto}" aria-label="Novo valor (vazio = automático)">`:`${fmt?fmt(cur):cur}${suf}${mk(k)} <button type="button" class="mod noprint" data-mod="${k}" title="Modificar este valor">MOD</button>`};
+const foc=()=>{const i=document.querySelector('[data-oi]');if(i){i.focus();i.select()}};
+document.addEventListener('click',e=>{const b=e.target.closest('[data-mod]');if(!b)return;EDIT=b.dataset.mod;calc();foc()});
+document.addEventListener('change',e=>{const i=e.target.closest('[data-oi]');if(!i)return;const k=i.dataset.oi,t=i.value.trim();if(t==='')delete S.ov[k];else{const x=parseFloat(t.replace(',','.'));if(!isNaN(x))S.ov[k]=x}EDIT=null;calc()});
+document.addEventListener('focusout',e=>{if(e.target.closest('[data-oi]'))setTimeout(()=>{if(EDIT){EDIT=null;calc()}},0)});
+document.addEventListener('keydown',e=>{const i=e.target.closest('[data-oi]');if(!i)return;if(e.key=='Enter')i.blur();else if(e.key=='Escape'){EDIT=null;calc()}});
 const PEN=[0,0,0,2,3,3,4],pen=()=>PEN[S.est||0];
 const est=d=>{S.est=Math.min(6,Math.max(0,(S.est||0)+d));calc()};
 const rest=k=>{const e=S.est||0;if(!e)return;const p0=S.pvA===''?M.pv:+S.pvA,f=S.sp?'pfA':'esA',mx=S.sp?M.pf:M.es,e0=S[f]===''?mx:+S[f];S.pvA=Math.min(M.pv,p0+e*k);S[f]=Math.min(mx,e0+e*2*k);S.est=0;calc()};
@@ -199,63 +198,64 @@ function calc(){
  const pvC=c.pv+(n-1)*(c.pvn+pos('CON'))+(S.cls=='Guardião'&&n>=3?2*(n-2):0);
  const pv=ov('pv',pvC);
  const es=c.es+(n-1)*(c.esn+pos('SAB'));
- const pf=Math.max(2*mod('CON'),0),pfr=n==1?2:n;
- const esp=c.esp+gains+(S.cls=='Metódico'?1+(n>=12?1:0):0);
- const ciclo=n>=20?4:n>=10?3:n>=5?2:1;
- const extra=cnt([9,15],n)+(sp?2*fg:0),sum=AT.reduce((s,a)=>s+mod(a),0),rest=4+extra-sum;
- const estV=Math.max(c.est+mod('INT'),0),estudos=cnt([7,14],n)*estV,perI=Math.max(c.per+mod('INT'),0)+(sp?gains-fg:0);
+ const pf=Math.max(2*mod('CON'),0),pfr0=n==1?2:n,pfr=ov('pfr',pfr0);
+ const espC=c.esp+gains+(S.cls=='Metódico'?1+(n>=12?1:0):0),esp=ov('esp',espC);
+ const cicloC=n>=20?4:n>=10?3:n>=5?2:1,ciclo=ov('ciclo',cicloC);
+ const extra=cnt([9,15],n)+(sp?2*fg:0),sum=AT.reduce((s,a)=>s+mod(a),0),restC=4+extra-sum,rest=ov('rest',restC);
+ const estV=Math.max(c.est+mod('INT'),0),estudosC=cnt([7,14],n)*estV,perIC=Math.max(c.per+mod('INT'),0)+(sp?gains-fg:0),estudos=ov('estudos',estudosC),perI=ov('peri',perIC);
  const treinadas=SK.filter(([k])=>S.sk[k]>0).length;
- const cap=(mod('FOR')>0?mod('FOR')*5:2)+(S.moch?2:0);
+ const capC=(mod('FOR')>0?mod('FOR')*5:2)+(S.moch?2:0),cap=ov('cap',capC);
  const peso=S.it.reduce((s,t)=>s+(+t.p||0),0);
  const gl=[Infinity,2+(n>=3?1:0)+(sp?1:0),cnt([5,7,9],n),cnt([11,13,15],n),cnt([17,19],n)];
  const gu=g=>S.it.filter(t=>t.g==g).length;
- const dt=10+n+mod(S.dtAt);
+ const dt0=10+n+mod(S.dtAt);
  const maxE=ov('es',es),maxP=ov('pf',pf);
  if(S.pfA!==''&&(+S.pfA===S.pfMax||+S.pfA>maxP))S.pfA='';
  S.pfMax=maxP;M.pf=maxP;
  if(S.esA!==''&&(+S.esA===S.esMax||+S.esA>maxE))S.esA='';
  S.esMax=maxE;M.pv=pv;M.es=maxE;
  const pn=pen(),estTxt=S.est<3?'efeitos narrativos':`-${pn} em testes${S.est>=5?' e -1 D20':''}`;
+ const bx=(k,a,t,suf,fmt)=>`<div class="box"><b>${ed(k,a,suf,fmt)}</b><span>${t}</span></div>`;
  const box=(v,t,w)=>`<div class="box ${w?'w':''}"><b>${v}</b><span>${t}</span></div>`;
  $('#secpw').hidden=sp;$('#spbox').hidden=!sp;$('#fg').max=gains;
  if(S.fg!=fg){S.fg=fg;$('#fg').value=fg}
  $('#spnote').innerHTML=`P.F. = 2 x CON = <b>${pf}</b>. Limite por rodada: <b>${pfr}</b>. Escolhas disponíveis: ${gains} (${fg} em atributos = +${2*fg} pontos, ${gains-fg} em perícias). Atributo máximo: 10. Você ganha um item de grau 1 extra.<br>Cada ação custa 2 P.F.; repetir a mesma ação na mesma rodada custa o dobro (2, 4, 6...). Ações: re-rolar um teste, ataque extra, mais uma ação extra, trocar de arma como ação livre, +1 dado em acerto ou dano, +2 na margem de ameaça, +1 no multiplicador de crítico.`;
- $('#atnote').innerHTML=`Pontos para distribuir: <b class="${rest<0?'bad':''}">${rest}</b> (4 iniciais${cnt([9,15],n)?` + ${cnt([9,15],n)} por nível`:''}${sp&&fg?` + ${2*fg} de P.F.`:''}). ${sp?'Sem poderes, o limite de atributo é 10.':'Inicialmente, nenhum atributo passa de 4.'} Atributo negativo só vale em rolagens.`;
+ $('#atnote').innerHTML=`Pontos para distribuir: <b class="${rest<0?'bad':''}">${ed('rest',restC)}</b> (4 iniciais${cnt([9,15],n)?` + ${cnt([9,15],n)} por nível`:''}${sp&&fg?` + ${2*fg} de P.F.`:''}). ${sp?'Sem poderes, o limite de atributo é 10.':'Inicialmente, nenhum atributo passa de 4.'} Atributo negativo só vale em rolagens.`;
  const pvZero=(S.pvA===''?pv:+S.pvA)<=0;
  $('#stats').innerHTML=
- `<div class="box ${S.cai>=3?'w':''}"><span>PV atuais / máx.</span><div class="cur"><input type="number" id="pvA" value="${S.pvA===''?pv:S.pvA}"><b ${oa('pv')}>/ ${pv}${mk('pv')}</b></div><div class="stars" role="group" aria-label="Rodadas caído">${[1,2,3].map(i=>`<button type="button" class="star${S.cai>=i?' on':''}" onclick="star(${i})" aria-pressed="${S.cai>=i}" aria-label="Rodada caído ${i}">★</button>`).join('')}</div><span class="${S.cai>=3?'bad':''}">${S.cai>=3?'<strong>MORTO</strong>: 3 rodadas caído':'Rodadas caído: '+S.cai+'/3'+(pvZero?' (Morrendo)':'')}</span></div>`+
- (sp?'':`<div class="box"><span>ES atual / máx.</span><div class="cur"><input type="number" id="esA" value="${S.esA===''?es:S.esA}"><b ${oa('es')}>/ ${maxE}${mk('es')}</b></div></div>`)+
- `<div class="box"><span>P.F. atuais / máx.</span><div class="cur"><input type="number" id="pfA" value="${S.pfA===''?maxP:S.pfA}"><b ${oa('pf')}>/ ${maxP}${mk('pf')}</b></div></div>`+
- (sp?box(pfr,'P.F. por rodada (limite)'):'')+
- `<div class="box"><b ${oa('desl')}>${ov('desl',9)}m${mk('desl')}</b><span>Deslocamento</span></div>`+
- `<div class="box"><b ${oa('def')}>${ov('def',10+mod('DES'))}${mk('def')}</b><span>Defesa (10 + DES)</span></div>`+
- `<div class="box est" style="grid-column:span 2"><div class="cur"><svg class="ic" viewBox="0 0 40 40" aria-hidden="true"><path d="M20 4C20 4 8 18 8 25a12 12 0 0 0 24 0C32 18 20 4 20 4z"/></svg><b>${S.est}/6</b></div><span class="${S.est>=6?'bad':''}">Estresse: ${estTxt}${S.est>=6?'. Desmaiou de exaustão (novo dia começa com 3)':''}</span><div class="mini noprint"><button type="button" onclick="est(-1)" aria-label="Diminuir estresse">-</button><button type="button" onclick="est(1)" aria-label="Aumentar estresse">+</button><button type="button" onclick="rest(1)" title="Cada ponto vira 1 PV e 2 ${sp?'P.F.':'ES'}">Descanso curto</button><button type="button" onclick="rest(2)" title="Cada ponto vira 2 PV e 4 ${sp?'P.F.':'ES'}">Descanso longo</button><button type="button" onclick="dia()">Novo dia</button></div></div>`+`<div class="box ini"><button type="button" id="d20" class="d20" aria-label="Rolar iniciativa"><svg viewBox="0 0 100 100" aria-hidden="true"><polygon points="50,4 93,28 93,72 50,96 7,72 7,28"/><text x="50" y="62" text-anchor="middle" id="d20n">d20</text></svg></button><span>Iniciativa: d20 ${bIni()<0?'-':'+'} ${Math.abs(bIni())}<br><em id="d20r" aria-live="polite">Clique no dado para rolar</em></span></div>`+
+ `<div class="box ${S.cai>=3?'w':''}"><span>PV atuais / máx.</span><div class="cur"><input type="number" id="pvA" value="${S.pvA===''?pv:S.pvA}"><b>/ ${ed('pv',pvC)}</b></div><div class="stars" role="group" aria-label="Rodadas caído">${[1,2,3].map(i=>`<button type="button" class="star${S.cai>=i?' on':''}" onclick="star(${i})" aria-pressed="${S.cai>=i}" aria-label="Rodada caído ${i}">★</button>`).join('')}</div><span class="${S.cai>=3?'bad':''}">${S.cai>=3?'<strong>MORTO</strong>: 3 rodadas caído':'Rodadas caído: '+S.cai+'/3'+(pvZero?' (Morrendo)':'')}</span></div>`+
+ (sp?'':`<div class="box"><span>ES atual / máx.</span><div class="cur"><input type="number" id="esA" value="${S.esA===''?es:S.esA}"><b>/ ${ed('es',es)}</b></div></div>`)+
+ (sp?`<div class="box"><span>P.F. atuais / máx.</span><div class="cur"><input type="number" id="pfA" value="${S.pfA===''?maxP:S.pfA}"><b>/ ${ed('pf',pf)}</b></div></div>`:'')+
+ (sp?bx('pfr',pfr0,'P.F. por rodada (limite)'):'')+
+ bx('desl',9,'Deslocamento','m')+
+ bx('def',10+mod('DES'),'Defesa (10 + DES)')+
+ `<div class="box est" style="grid-column:span 2"><div class="cur"><svg class="ic" viewBox="0 0 40 40" aria-hidden="true"><path d="M20 4C20 4 8 18 8 25a12 12 0 0 0 24 0C32 18 20 4 20 4z"/></svg><b>${S.est}/6</b></div><span class="${S.est>=6?'bad':''}">Estresse: ${estTxt}${S.est>=6?'. Desmaiou de exaustão (novo dia começa com 3)':''}</span><div class="mini noprint"><button type="button" onclick="est(-1)" aria-label="Diminuir estresse">-</button><button type="button" onclick="est(1)" aria-label="Aumentar estresse">+</button><button type="button" onclick="rest(1)" title="Cada ponto vira 1 PV e 2 ${sp?'P.F.':'ES'}">Descanso curto</button><button type="button" onclick="rest(2)" title="Cada ponto vira 2 PV e 4 ${sp?'P.F.':'ES'}">Descanso longo</button><button type="button" onclick="dia()">Novo dia</button></div></div>`+`<div class="box ini"><button type="button" id="d20" class="d20" aria-label="Rolar iniciativa"><svg viewBox="0 0 100 100" aria-hidden="true"><polygon points="50,4 93,28 93,72 50,96 7,72 7,28"/><text x="50" y="62" text-anchor="middle" id="d20n">d20</text></svg></button><span>Iniciativa: d20 ${ed('ini',iniAuto(),'',v=>(v<0?'- ':'+ ')+Math.abs(v))}<br><em id="d20r" aria-live="polite">Clique no dado para rolar</em></span></div>`+
  `<div class="box sg"><div class="cur"><svg class="ic" viewBox="0 0 40 40" aria-hidden="true"><polygon points="24,2 8,22 19,22 15,38 32,16 21,16"/></svg><b>${S.sing}/6</b></div><span>Pontos Singulares</span><div class="mini noprint"><button type="button" onclick="sing(-1)" aria-label="Diminuir pontos singulares">-</button><button type="button" onclick="sing(1)" aria-label="Aumentar pontos singulares">+</button></div>${S.sing>=6?'<div class="bad" style="font-size:13px">Limite atingido: você cedeu à Singularidade.</div>':''}</div>`+
- (sp?'':`<div class="box"><b>${dt}</b><span>DT dos poderes: 10 + nível + <select id="dtAt" style="padding:2px">${AT.map(a=>`<option ${a==S.dtAt?'selected':''}>${a}</option>`).join('')}</select></span></div>`+box(2+n,'Habilidades de poder'))+
- box(estudos,'Estudos (valor '+estV+' por concessão)')+box(perI,'Perícias treinadas iniciais');
- $('#pvA').oninput=e=>{S.pvA=e.target.value;save()};if($('#esA'))$('#esA').oninput=e=>{S.esA=e.target.value;save()};$('#pfA').oninput=e=>{S.pfA=e.target.value;save()};
+ (sp?'':`<div class="box"><b>${ed('dt',dt0)}</b><span>DT dos poderes: 10 + nível + <select id="dtAt" style="padding:2px">${AT.map(a=>`<option ${a==S.dtAt?'selected':''}>${a}</option>`).join('')}</select></span></div>`+bx('hpow',2+n,'Habilidades de poder'))+
+ bx('estudos',estudosC,'Estudos (valor '+estV+' por concessão)')+bx('peri',perIC,'Perícias treinadas iniciais');
+ $('#pvA').oninput=e=>{S.pvA=e.target.value;save()};if($('#esA'))$('#esA').oninput=e=>{S.esA=e.target.value;save()};if($('#pfA'))$('#pfA').oninput=e=>{S.pfA=e.target.value;save()};
  if($('#dtAt'))$('#dtAt').onchange=e=>{S.dtAt=e.target.value;calc()};
  $('#d20').onclick=rolar;paintRoll();
- $('#stnote').textContent=`Dois cliques (ou dois toques) em PV máx., ES máx., P.F. máx., deslocamento ou defesa para editar à mão; * marca valor manual e vazio volta ao automático. Aumentos de atributo nos níveis 9 e 15; estudos nos níveis 7 e 14.${sp?'':' Metódico soma INT ao ES a partir do nível 12 (aplique à mão).'} Estresse: a partir de 3 pontos há penalidade em testes (aplicada nos bônus exibidos). Com 0 PV o personagem fica Morrendo: os aliados têm 3 rodadas para socorrer.`;
+ $('#stnote').textContent=`Clique em MOD ao lado de um valor para editá-lo à mão; * marca valor manual e deixar vazio volta ao automático. Aumentos de atributo nos níveis 9 e 15; estudos nos níveis 7 e 14.${sp?'':' Metódico soma INT ao ES a partir do nível 12 (aplique à mão).'} Estresse: a partir de 3 pontos há penalidade em testes (aplicada nos bônus exibidos). Com 0 PV o personagem fica Morrendo: os aliados têm 3 rodadas para socorrer.`;
  const ft=c.f;$('#feat').innerHTML=Object.keys(ft).filter(l=>n>=l).map(l=>{const[t,...r]=ft[l].split(': ');return`<li><b>Nível ${l}. ${t}.</b> ${r.join(': ')}</li>`}).join('');
- SK.forEach(([k,a])=>{const b=mod(a)+TB[S.sk[k]||0]-pn;document.querySelector(`[data-b="${k}"]`).textContent=(b>=0?'+':'')+b});
+ SK.forEach(([k,a])=>{const b=mod(a)+TB[S.sk[k]||0]-pn;document.querySelector(`[data-b="${k}"]`).innerHTML=ed('sk:'+k,b,'',v=>(v>=0?'+':'')+v)});
  $('#sknote').textContent=`Treinadas: ${treinadas} (iniciais ${perI}${estudos?`, mais ${estudos} de estudos`:''}).${pn?` Os bônus já incluem -${pn} de estresse.`:''}${S.est>=5?' Role 1d20 a menos.':''}`;
  S.slots=S.slots.slice(0,esp).map(x=>S.pw.some(p=>p.id==x)?x:'');while(S.slots.length<esp)S.slots.push('');
  const mao=S.slots.filter(Boolean).length,ruim=S.pw.filter(p=>p.c>ciclo).length;
- $('#pwst').innerHTML=box(esp,'Espaços de poder')+box(mao+'/'+esp,'Espaços preenchidos')+box('0 a '+ciclo,'Ciclos liberados');
+ $('#pwst').innerHTML=bx('esp',espC,'Espaços de poder')+box(mao+'/'+esp,'Espaços preenchidos')+bx('ciclo',cicloC,'Ciclos liberados','',v=>'0 a '+v);
  $('#slots').innerHTML=S.slots.map((v,i)=>`<label>Espaço ${i+1}<select data-sl="${i}"><option value="">Vazio</option>${S.pw.map(p=>`<option value="${p.id}" ${v==p.id?'selected':''} ${S.slots.includes(p.id)&&v!=p.id?'disabled':''}>${esc(p.n||'Sem nome')} (ciclo ${p.c})</option>`).join('')}</select></label>`).join('');
  document.querySelectorAll('[data-sl]').forEach(e=>e.onchange=()=>{S.slots[+e.dataset.sl]=e.value;calc()});
  document.querySelectorAll('[data-pid]').forEach(e=>e.classList.toggle('eq',S.slots.includes(e.dataset.pid)));
- $('#pwnote').innerHTML=`Habilidades: ${S.pw.length}/${2+n}. Ciclos liberados: 0 a ${ciclo}.${ruim?` <span class="bad">${ruim} habilidade(s) acima do seu ciclo máximo (${ciclo}).</span>`:''}`;
+ $('#pwnote').innerHTML=`Habilidades: ${S.pw.length}/${ov('hpow',2+n)}. Ciclos liberados: 0 a ${ciclo}.${ruim?` <span class="bad">${ruim} habilidade(s) acima do seu ciclo máximo (${ciclo}).</span>`:''}`;
  S.pw.forEach((p,i)=>{const e=$('#cs'+i);if(e)e.textContent='Custo: '+CUSTO[p.c]+' ES'+(S.slots.includes(p.id)?' | Equipada':'')});
- const hmax=Math.floor(n/2);$('#hcnote').innerHTML=`Habilidades de classe: <b class="${S.hc.length>hmax?'bad':''}">${S.hc.length}/${hmax}</b>. Cada uma pode ser trocada por uma habilidade ou item matemático.`;
+ const hmaxC=Math.floor(n/2),hmax=ov('hmax',hmaxC);$('#hcnote').innerHTML=`Habilidades de classe: <b class="${S.hc.length>hmax?'bad':''}">${S.hc.length}/${ed('hmax',hmaxC)}</b>. Cada uma pode ser trocada por uma habilidade ou item matemático.`;
  const gs=[1,2,3,4].map(g=>`grau ${g}: ${gu(g)}/${gl[g]}`).join(' | ');
- $('#itnote').innerHTML=`Peso: <b class="${peso>cap?'bad':''}">${peso}/${cap}</b>${peso>cap?` (excesso: -${(peso-cap)*2} em testes de DES e -${peso-cap} de deslocamento)`:''}. Itens por ${gs}. Grau 0 é ilimitado.`;
+ $('#itnote').innerHTML=`Peso: <b class="${peso>cap?'bad':''}">${peso}/${ed('cap',capC)}</b>${peso>cap?` (excesso: -${(peso-cap)*2} em testes de DES e -${peso-cap} de deslocamento)`:''}. Itens por ${gs}. Grau 0 é ilimitado.`;
  save();
 }
 
 let ROLL=null;
-const bIni=()=>mod('DES')+TB[S.sk['Iniciativa']||0]-pen();
+const iniAuto=()=>mod('DES')+TB[S.sk['Iniciativa']||0]-pen(),bIni=()=>ov('ini',iniAuto());
 function rolar(){
  const fin=1+Math.floor(Math.random()*20);
  const done=()=>{ROLL={d:fin,b:bIni()};paintRoll()};
@@ -294,4 +294,3 @@ build();
 </script>
 </body>
 </html>
-
