@@ -21,8 +21,10 @@ main{max-width:1100px;margin:0 auto;padding:18px;display:grid;gap:18px}
 section{background:var(--pn);border:1px solid var(--ln);border-radius:10px;padding:16px}
 h2{font-size:20px;margin-bottom:12px}
 .g{display:grid;gap:10px;grid-template-columns:repeat(auto-fill,minmax(170px,1fr))}
-label{display:flex;flex-direction:column;font-size:13px;color:var(--mu);gap:3px}
-label input,label select,label textarea{width:100%}
+label,.lb{display:flex;flex-direction:column;font-size:13px;color:var(--mu);gap:3px}
+label input,label select,label textarea,.lb input{width:100%}
+.stp{display:flex;gap:4px}.stp input{min-width:0}.stp button{padding:4px 14px;font-size:20px}
+[data-ov]{cursor:pointer;user-select:none;-webkit-user-select:none;touch-action:manipulation}
 .wide{grid-column:1/-1}
 .at{text-align:center}.at input{font-size:22px;text-align:center;font-weight:600}
 .st{display:grid;gap:10px;grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}
@@ -114,7 +116,7 @@ Protetor:{pv:14,pvn:2,es:12,esn:5,per:4,esp:4,est:4,f:{1:'Aprendiz de Suporte: c
 const SK=[['Adestramento','SAB'],['Artes','CAR'],['Atualidades','INT'],['Atletismo','FOR'],['Ciências química','INT'],['Ciências física','INT'],['Ciências biologia','INT'],['Ciências geografia','INT'],['Diplomacia','CAR'],['Enganação','CAR'],['Fortitude','CON'],['Furtividade','DES'],['Iniciativa','DES'],['Intimidação','CAR'],['Intuição','SAB'],['Investigação','INT'],['Linguagens','INT'],['Luta','FOR'],['Medicina','INT'],['Percepção','SAB'],['Pilotagem','DES'],['Pontaria','DES'],['Profissão','INT'],['Reflexos','DES'],['Religião','SAB'],['Sinestesia','INT'],['Sobrevivência','SAB'],['Tática','SAB'],['Tecnologia','INT']].concat([['Vontade','SAB']]);
 const TR=['RI','R','B','MB'],TB=[0,2,4,6],CUSTO=[0,2,4,8,12];
 const INFO=[['nome','Nome'],['ocupacao','Ocupação'],['genero','Gênero'],['idade','Idade'],['altura','Altura'],['hist','História']];
-const NEW=()=>({cls:'Poderoso',nivel:1,at:{},sk:{},pw:[],hc:[],slots:[],it:[],dtAt:'INT',moch:false,info:{},pvA:'',esA:'',pwnome:'',notas:'',sing:0,cai:0,sp:false,fg:0,port:'',est:0,esMax:null});
+const NEW=()=>({cls:'Poderoso',nivel:1,at:{},sk:{},pw:[],hc:[],slots:[],it:[],dtAt:'INT',moch:false,info:{},pvA:'',esA:'',pwnome:'',notas:'',sing:0,cai:0,sp:false,fg:0,port:'',est:0,esMax:null,ov:{},pfA:'',pfMax:null});
 let S;
 try{S=JSON.parse(localStorage.getItem('sin-ficha'))}catch(e){}
 const uid=()=>Math.random().toString(36).slice(2,9);
@@ -128,14 +130,17 @@ const esc=v=>String(v??'').replace(/"/g,'&quot;').replace(/</g,'&lt;');
 function build(){
  $('#cls').innerHTML=Object.keys(CL).map(c=>`<option>${c}</option>`).join('');
  $('#info').innerHTML=INFO.map(([k,t])=>`<label class="${k=='hist'?'wide':''}">${t}${k=='hist'?`<textarea data-i="${k}" rows="3"></textarea>`:`<input data-i="${k}">`}</label>`).join('');
- $('#ats').innerHTML=AT.map(a=>`<label class="at">${a}<input type="number" data-a="${a}" min="-5" max="10"></label>`).join('');
+ $('#ats').innerHTML=AT.map(a=>`<div class="lb at"><span>${a}</span><div class="stp"><button type="button" data-st="${a}" data-d="-1" aria-label="Diminuir ${a}">-</button><input type="text" inputmode="text" autocomplete="off" data-a="${a}" aria-label="${a}"><button type="button" data-st="${a}" data-d="1" aria-label="Aumentar ${a}">+</button></div></div>`).join('');
  $('#sk').innerHTML=SK.map(([n,a])=>`<div><span>${n} <em>${a}</em></span><select data-s="${n}">${TR.map((t,i)=>`<option value="${i}">${t}</option>`).join('')}</select><strong data-b="${n}"></strong></div>`).join('');
  document.querySelectorAll('[data-i]').forEach(e=>{e.value=S.info[e.dataset.i]||'';e.oninput=()=>{S.info[e.dataset.i]=e.value;save()}});
- document.querySelectorAll('[data-a]').forEach(e=>{e.value=S.at[e.dataset.a]??0;e.oninput=()=>{S.at[e.dataset.a]=+e.value||0;calc()}});
+ document.querySelectorAll('[data-a]').forEach(e=>{e.value=S.at[e.dataset.a]??0;
+  e.oninput=()=>{const x=parseInt(e.value.replace(/[−–—]/g,'-').trim(),10);S.at[e.dataset.a]=isNaN(x)?0:Math.max(-5,Math.min(10,x));calc()};
+  e.onblur=()=>{e.value=S.at[e.dataset.a]}});
+ document.querySelectorAll('[data-st]').forEach(b=>b.onclick=()=>{const a=b.dataset.st,v=Math.max(-5,Math.min(10,mod(a)+ +b.dataset.d));S.at[a]=v;document.querySelector(`[data-a="${a}"]`).value=v;calc()});
  document.querySelectorAll('[data-s]').forEach(e=>{e.value=S.sk[e.dataset.s]||0;e.onchange=()=>{S.sk[e.dataset.s]=+e.value;calc()}});
  $('#cls').value=S.cls;$('#cls').onchange=e=>{S.cls=e.target.value;calc()};
  $('#nivel').value=S.nivel;$('#nivel').oninput=e=>{S.nivel=Math.min(20,Math.max(1,+e.target.value||1));calc()};
- $('#sp').checked=S.sp;$('#sp').onchange=e=>{S.sp=e.target.checked;S.esA='';calc()};
+ $('#sp').checked=S.sp;$('#sp').onchange=e=>{S.sp=e.target.checked;S.esA='';S.pfA='';calc()};
  $('#fg').value=S.fg;$('#fg').oninput=e=>{S.fg=Math.max(0,+e.target.value||0);calc()};
  $('#pwnome').value=S.pwnome;$('#pwnome').oninput=e=>{S.pwnome=e.target.value;save()};
  $('#notas').value=S.notas;$('#notas').oninput=e=>{S.notas=e.target.value;save()};
@@ -170,17 +175,29 @@ const addHc=()=>{S.hc.push({n:'',d:''});lists();calc()};
 const addPw=()=>{S.pw.push({id:uid(),n:'',c:0,at:'',al:'',alv:'',du:'',ds:''});lists();calc()};
 const addIt=()=>{S.it.push({n:'',p:1,g:0,o:''});lists();calc()};
 const sing=d=>{S.sing=Math.min(6,Math.max(0,S.sing+d));calc()};
-let M={pv:0,es:0};
+let M={pv:0,es:0,pf:0},LAST={};
+const ov=(k,v)=>S.ov&&S.ov[k]!=null?S.ov[k]:v;
+const oa=k=>`data-ov="${k}" tabindex="0" role="button" title="Dois cliques para editar"`,mk=k=>S.ov&&S.ov[k]!=null?'*':'';
+const OVN={pv:'PV máximo',es:'ES máximo',pf:'P.F. máximo',desl:'Deslocamento (m)',def:'Defesa'};
+function editOv(k){
+ const v=prompt(OVN[k]+' (deixe vazio para voltar ao automático):',ov(k,k=='pv'?M.pv:k=='es'?M.es:k=='pf'?M.pf:k=='def'?10+mod('DES'):9));
+ if(v===null)return;const t=v.trim();
+ if(t==='')delete S.ov[k];else{const x=parseFloat(t.replace(',','.'));if(isNaN(x))return;S.ov[k]=x}
+ calc();
+}
+$('#stats').addEventListener('click',e=>{const t=e.target.closest('[data-ov]');if(!t)return;const k=t.dataset.ov,n=Date.now();if(LAST.k==k&&n-LAST.t<450){LAST={};editOv(k)}else LAST={k,t:n}});
+$('#stats').addEventListener('keydown',e=>{const t=e.target.closest('[data-ov]');if(t&&e.key=='Enter')editOv(t.dataset.ov)});
 const PEN=[0,0,0,2,3,3,4],pen=()=>PEN[S.est||0];
 const est=d=>{S.est=Math.min(6,Math.max(0,(S.est||0)+d));calc()};
-const rest=k=>{const e=S.est||0;if(!e)return;const p0=S.pvA===''?M.pv:+S.pvA,e0=S.esA===''?M.es:+S.esA;S.pvA=Math.min(M.pv,p0+e*k);S.esA=Math.min(M.es,e0+e*2*k);S.est=0;calc()};
+const rest=k=>{const e=S.est||0;if(!e)return;const p0=S.pvA===''?M.pv:+S.pvA,f=S.sp?'pfA':'esA',mx=S.sp?M.pf:M.es,e0=S[f]===''?mx:+S[f];S.pvA=Math.min(M.pv,p0+e*k);S[f]=Math.min(mx,e0+e*2*k);S.est=0;calc()};
 const dia=()=>{S.est=(S.est||0)>=6?3:0;calc()};
 const star=i=>{S.cai=S.cai===i?i-1:i;calc()};
 
 function calc(){
  const n=S.nivel,c=CL[S.cls],sp=S.sp;
  const gains=cnt([4,8,16,20],n),fg=Math.min(S.fg,gains);
- const pv=c.pv+(n-1)*(c.pvn+pos('CON'))+(S.cls=='Guardião'&&n>=3?2*(n-2):0);
+ const pvC=c.pv+(n-1)*(c.pvn+pos('CON'))+(S.cls=='Guardião'&&n>=3?2*(n-2):0);
+ const pv=ov('pv',pvC);
  const es=c.es+(n-1)*(c.esn+pos('SAB'));
  const pf=Math.max(2*mod('CON'),0),pfr=n==1?2:n;
  const esp=c.esp+gains+(S.cls=='Metódico'?1+(n>=12?1:0):0);
@@ -193,7 +210,9 @@ function calc(){
  const gl=[Infinity,2+(n>=3?1:0)+(sp?1:0),cnt([5,7,9],n),cnt([11,13,15],n),cnt([17,19],n)];
  const gu=g=>S.it.filter(t=>t.g==g).length;
  const dt=10+n+mod(S.dtAt);
- const maxE=sp?pf:es;
+ const maxE=ov('es',es),maxP=ov('pf',pf);
+ if(S.pfA!==''&&(+S.pfA===S.pfMax||+S.pfA>maxP))S.pfA='';
+ S.pfMax=maxP;M.pf=maxP;
  if(S.esA!==''&&(+S.esA===S.esMax||+S.esA>maxE))S.esA='';
  S.esMax=maxE;M.pv=pv;M.es=maxE;
  const pn=pen(),estTxt=S.est<3?'efeitos narrativos':`-${pn} em testes${S.est>=5?' e -1 D20':''}`;
@@ -204,18 +223,20 @@ function calc(){
  $('#atnote').innerHTML=`Pontos para distribuir: <b class="${rest<0?'bad':''}">${rest}</b> (4 iniciais${cnt([9,15],n)?` + ${cnt([9,15],n)} por nível`:''}${sp&&fg?` + ${2*fg} de P.F.`:''}). ${sp?'Sem poderes, o limite de atributo é 10.':'Inicialmente, nenhum atributo passa de 4.'} Atributo negativo só vale em rolagens.`;
  const pvZero=(S.pvA===''?pv:+S.pvA)<=0;
  $('#stats').innerHTML=
- `<div class="box ${S.cai>=3?'w':''}"><span>PV atuais / máx.</span><div class="cur"><input type="number" id="pvA" value="${S.pvA===''?pv:S.pvA}"><b>/ ${pv}</b></div><div class="stars" role="group" aria-label="Rodadas caído">${[1,2,3].map(i=>`<button type="button" class="star${S.cai>=i?' on':''}" onclick="star(${i})" aria-pressed="${S.cai>=i}" aria-label="Rodada caído ${i}">★</button>`).join('')}</div><span class="${S.cai>=3?'bad':''}">${S.cai>=3?'<strong>MORTO</strong>: 3 rodadas caído':'Rodadas caído: '+S.cai+'/3'+(pvZero?' (Morrendo)':'')}</span></div>`+
- `<div class="box"><span>${sp?'P.F. atuais / máx.':'ES atual / máx.'}</span><div class="cur"><input type="number" id="esA" value="${S.esA===''?(sp?pf:es):S.esA}"><b>/ ${sp?pf:es}</b></div></div>`+
+ `<div class="box ${S.cai>=3?'w':''}"><span>PV atuais / máx.</span><div class="cur"><input type="number" id="pvA" value="${S.pvA===''?pv:S.pvA}"><b ${oa('pv')}>/ ${pv}${mk('pv')}</b></div><div class="stars" role="group" aria-label="Rodadas caído">${[1,2,3].map(i=>`<button type="button" class="star${S.cai>=i?' on':''}" onclick="star(${i})" aria-pressed="${S.cai>=i}" aria-label="Rodada caído ${i}">★</button>`).join('')}</div><span class="${S.cai>=3?'bad':''}">${S.cai>=3?'<strong>MORTO</strong>: 3 rodadas caído':'Rodadas caído: '+S.cai+'/3'+(pvZero?' (Morrendo)':'')}</span></div>`+
+ (sp?'':`<div class="box"><span>ES atual / máx.</span><div class="cur"><input type="number" id="esA" value="${S.esA===''?es:S.esA}"><b ${oa('es')}>/ ${maxE}${mk('es')}</b></div></div>`)+
+ `<div class="box"><span>P.F. atuais / máx.</span><div class="cur"><input type="number" id="pfA" value="${S.pfA===''?maxP:S.pfA}"><b ${oa('pf')}>/ ${maxP}${mk('pf')}</b></div></div>`+
  (sp?box(pfr,'P.F. por rodada (limite)'):'')+
- box(9+'m','Deslocamento')+
+ `<div class="box"><b ${oa('desl')}>${ov('desl',9)}m${mk('desl')}</b><span>Deslocamento</span></div>`+
+ `<div class="box"><b ${oa('def')}>${ov('def',10+mod('DES'))}${mk('def')}</b><span>Defesa (10 + DES)</span></div>`+
  `<div class="box est" style="grid-column:span 2"><div class="cur"><svg class="ic" viewBox="0 0 40 40" aria-hidden="true"><path d="M20 4C20 4 8 18 8 25a12 12 0 0 0 24 0C32 18 20 4 20 4z"/></svg><b>${S.est}/6</b></div><span class="${S.est>=6?'bad':''}">Estresse: ${estTxt}${S.est>=6?'. Desmaiou de exaustão (novo dia começa com 3)':''}</span><div class="mini noprint"><button type="button" onclick="est(-1)" aria-label="Diminuir estresse">-</button><button type="button" onclick="est(1)" aria-label="Aumentar estresse">+</button><button type="button" onclick="rest(1)" title="Cada ponto vira 1 PV e 2 ${sp?'P.F.':'ES'}">Descanso curto</button><button type="button" onclick="rest(2)" title="Cada ponto vira 2 PV e 4 ${sp?'P.F.':'ES'}">Descanso longo</button><button type="button" onclick="dia()">Novo dia</button></div></div>`+`<div class="box ini"><button type="button" id="d20" class="d20" aria-label="Rolar iniciativa"><svg viewBox="0 0 100 100" aria-hidden="true"><polygon points="50,4 93,28 93,72 50,96 7,72 7,28"/><text x="50" y="62" text-anchor="middle" id="d20n">d20</text></svg></button><span>Iniciativa: d20 ${bIni()<0?'-':'+'} ${Math.abs(bIni())}<br><em id="d20r" aria-live="polite">Clique no dado para rolar</em></span></div>`+
  `<div class="box sg"><div class="cur"><svg class="ic" viewBox="0 0 40 40" aria-hidden="true"><polygon points="24,2 8,22 19,22 15,38 32,16 21,16"/></svg><b>${S.sing}/6</b></div><span>Pontos Singulares</span><div class="mini noprint"><button type="button" onclick="sing(-1)" aria-label="Diminuir pontos singulares">-</button><button type="button" onclick="sing(1)" aria-label="Aumentar pontos singulares">+</button></div>${S.sing>=6?'<div class="bad" style="font-size:13px">Limite atingido: você cedeu à Singularidade.</div>':''}</div>`+
  (sp?'':`<div class="box"><b>${dt}</b><span>DT dos poderes: 10 + nível + <select id="dtAt" style="padding:2px">${AT.map(a=>`<option ${a==S.dtAt?'selected':''}>${a}</option>`).join('')}</select></span></div>`+box(2+n,'Habilidades de poder'))+
  box(estudos,'Estudos (valor '+estV+' por concessão)')+box(perI,'Perícias treinadas iniciais');
- $('#pvA').oninput=e=>{S.pvA=e.target.value;save()};$('#esA').oninput=e=>{S.esA=e.target.value;save()};
+ $('#pvA').oninput=e=>{S.pvA=e.target.value;save()};if($('#esA'))$('#esA').oninput=e=>{S.esA=e.target.value;save()};$('#pfA').oninput=e=>{S.pfA=e.target.value;save()};
  if($('#dtAt'))$('#dtAt').onchange=e=>{S.dtAt=e.target.value;calc()};
  $('#d20').onclick=rolar;paintRoll();
- $('#stnote').textContent=`Aumentos de atributo nos níveis 9 e 15; estudos nos níveis 7 e 14.${sp?'':' Metódico soma INT ao ES a partir do nível 12 (aplique à mão).'} Estresse: a partir de 3 pontos há penalidade em testes (aplicada nos bônus exibidos). Com 0 PV o personagem fica Morrendo: os aliados têm 3 rodadas para socorrer.`;
+ $('#stnote').textContent=`Dois cliques (ou dois toques) em PV máx., ES máx., P.F. máx., deslocamento ou defesa para editar à mão; * marca valor manual e vazio volta ao automático. Aumentos de atributo nos níveis 9 e 15; estudos nos níveis 7 e 14.${sp?'':' Metódico soma INT ao ES a partir do nível 12 (aplique à mão).'} Estresse: a partir de 3 pontos há penalidade em testes (aplicada nos bônus exibidos). Com 0 PV o personagem fica Morrendo: os aliados têm 3 rodadas para socorrer.`;
  const ft=c.f;$('#feat').innerHTML=Object.keys(ft).filter(l=>n>=l).map(l=>{const[t,...r]=ft[l].split(': ');return`<li><b>Nível ${l}. ${t}.</b> ${r.join(': ')}</li>`}).join('');
  SK.forEach(([k,a])=>{const b=mod(a)+TB[S.sk[k]||0]-pn;document.querySelector(`[data-b="${k}"]`).textContent=(b>=0?'+':'')+b});
  $('#sknote').textContent=`Treinadas: ${treinadas} (iniciais ${perI}${estudos?`, mais ${estudos} de estudos`:''}).${pn?` Os bônus já incluem -${pn} de estresse.`:''}${S.est>=5?' Role 1d20 a menos.':''}`;
