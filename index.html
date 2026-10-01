@@ -774,43 +774,6 @@ show();
 </script>
 <script>
 (function(){
-if(window.__sinGl)return;window.__sinGl=1;
-const menu=document.getElementById('menu');
-if(!menu){alert('Cole este script DEPOIS do script do menu de personagens.');return}
-const R=document.documentElement;
-
-/* ---------- distorção exclusiva da ficha (nunca no menu) ---------- */
-const lvl=()=>{for(let i=6;i>=1;i--)if(R.hasAttribute('data-c'+i))return i;return 0};
-const strip=()=>{for(let i=1;i<=6;i++)R.removeAttribute('data-c'+i);R.style.removeProperty('--k')};
-new MutationObserver(()=>{if(!menu.hidden)strip()}).observe(R,{attributes:true});
-new MutationObserver(()=>{if(menu.hidden){try{calc()}catch(e){}}else strip()}).observe(menu,{attributes:true,attributeFilter:['hidden']});
-if(!menu.hidden)strip();
-
-/* ---------- fontes glitchando ---------- */
-const st=document.createElement('style');
-st.textContent='label[data-glf] :is(input,select,textarea){font-family:"Source Sans 3",system-ui,sans-serif!important}';
-document.head.appendChild(st);
-const FONTS=['"Wingdings",fantasy','"Wingdings",fantasy','"Wingdings 2",fantasy','"Wingdings 3",fantasy','"Webdings",fantasy','"Courier New",monospace','Impact,sans-serif','"Times New Roman",serif','fantasy','cursive','"Comic Sans MS",cursive'];
-const SEL='header h1,header p,main h2,main h3,main label,main .box>span,main .box>b,main .note,main .sk span,main .f li,main .ci b,main .ci em,main .ctile b';
-function tick(){
- const k=lvl();
- if(k>0&&menu.hidden&&!matchMedia('(prefers-reduced-motion:reduce)').matches){
-  const ae=document.activeElement;
-  const all=[...document.querySelectorAll(SEL)].filter(e=>!e.contains(ae)&&!e.dataset.glf);
-  for(let i=0;i<k+1&&all.length;i++){
-   const e=all.splice(Math.floor(Math.random()*all.length),1)[0];
-   const f=FONTS[Math.floor(Math.random()*FONTS.length)];
-   e.dataset.glf='1';e.style.setProperty('font-family',f,'important');
-   setTimeout(()=>{e.style.removeProperty('font-family');delete e.dataset.glf},150+Math.random()*(k>=5?1100:450));
-  }
- }
- setTimeout(tick,Math.max(450,2600-k*350)*(.5+Math.random()));
-}
-tick();
-})();
-</script>
-<script>
-(function(){
 if(window.__sinEst)return;window.__sinEst=1;
 if(!document.getElementById('menu')){alert('Cole este script DEPOIS dos outros.');return}
 
@@ -952,7 +915,7 @@ if(bar){
 
 /* ---------- MOD no "Custo de ES" das habilidades ---------- */
 const st2=document.createElement('style');
-st2.textContent='.cmod{margin-left:6px}.cin{width:80px!important}';
+st2.textContent='.cmod{margin-left:6px}.cin{width:80px!important}#it label[hidden]{display:none!important}';
 document.head.appendChild(st2);
 let CE=null;
 const baseC=p=>CUSTO[p.c]||0;
@@ -976,6 +939,30 @@ function custoMod(){
 const calcW=calc;
 calc=function(){calcW();if(CE===null||!document.querySelector('#pw .card .cin'))custoMod()};
 calc();
+
+/* ---------- "é uma arma" só em itens próprios; "equipado" só em proteções ---------- */
+const DEFN2={'Uniforme':2,'Escudo':3,'Proteção leve':4,'Proteção pesada':6};
+const dfn=t=>t.df!=null&&t.df!==''?(+t.df||0):(DEFN2[t.n]||0);
+const lists2=lists;
+lists=function(){
+ /* marca de onde veio o item: do catálogo (cat=true) ou próprio (cat=false) */
+ S.it.forEach(t=>{if(t.cat===undefined)t.cat=CAT.some(x=>x[1]===t.n&&x[4]===t.o)});
+ lists2();
+ document.querySelectorAll('#it .card').forEach((c,i)=>{
+  const t=S.it[i];if(!t)return;
+  if(t.cat){
+   const chk=c.querySelector('.wbox>label.chk');if(chk)chk.remove();
+   if(!t.wp){const wb=c.querySelector('.wbox');if(wb)wb.remove()}
+  }
+  const eq=c.querySelector('[data-eq]'),lab=eq&&eq.closest('label'),df=c.querySelector('[data-df]');
+  if(lab){
+   const sync=()=>{lab.hidden=!(dfn(t)>0)};
+   sync();
+   if(df)df.addEventListener('input',sync);
+  }
+ });
+};
+lists();calc();
 })();
 </script>
 
