@@ -809,6 +809,46 @@ function tick(){
 tick();
 })();
 </script>
+<script>
+(function(){
+if(window.__sinEst)return;window.__sinEst=1;
+if(!document.getElementById('menu')){alert('Cole este script DEPOIS dos outros.');return}
+
+/* emojis e penalidade para estresse negativo */
+['😌','😊','😎','🧘','😴','😇'].forEach((e,i)=>{EMO[-(i+1)]=e;PEN[-(i+1)]=0});
+
+const H={
+ 'est(-1)':()=>{S.est=Math.max(-6,(S.est||0)-1);calc()},
+ 'est(1)':()=>{S.est=Math.min(6,(S.est||0)+1);calc()},
+ 'rest(1)':()=>{if((S.est||0)>0)rest(1);else calc()},
+ 'rest(2)':()=>{if((S.est||0)>0)rest(2);else calc()},
+ 'dia()':()=>{const e=S.est||0;S.est=e>=6?3:(e<0?e:0);calc()}
+};
+
+function fixEst(){
+ document.querySelectorAll('#stats .box.est .mini button').forEach(b=>{
+  const k=b.getAttribute('onclick');
+  if(k&&H[k]){b.removeAttribute('onclick');b.onclick=H[k]}
+ });
+ if((S.est||0)<0){
+  const s=document.querySelector('#stats .box.est>span');
+  if(s)s.textContent='Estresse: relaxado, sem penalidade';
+ }
+}
+
+function fixEsq(){
+ const b=document.querySelector('#stats .box.esq');if(!b)return;
+ const sp=b.querySelector('span'),m=sp.textContent.match(/Defesa (-?\d+)/);if(!m)return;
+ const def=+m[1],r=S.sk['Reflexos']||0,tr=TB[r],us=S.esq|0;
+ b.querySelector('b').textContent=def+tr+S.nivel-2*us;
+ sp.textContent='Esquiva = Defesa '+def+' + Reflexos ('+TR[r]+') +'+tr+' + nível '+S.nivel+(us?' · −'+2*us+' ('+us+' esquiva'+(us>1?'s':'')+')':'');
+}
+
+const calc2=calc;
+calc=function(){calc2();fixEst();fixEsq()};
+calc();
+})();
+</script>
 </body>
 </html>
 
