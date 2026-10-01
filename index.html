@@ -1843,7 +1843,7 @@ if(window.__sinNet)return;window.__sinNet=1;
 const URL_='https://imopyaocobbaooadpdrk.supabase.co',KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imltb3B5YW9jb2JiYW9vYWRwZHJrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA4MjEzODIsImV4cCI6MjEwNjM5NzM4Mn0.dpTHeRToo_GYVIFPQGHvt5dRiM8yNdJC8YKoYRVTTPs';
 const bar=document.querySelector('header .bar');if(!bar)return;
 const CFG=!/^https:\/\//.test(URL_);
-let RT=0,sb=null,U=null,P={nome:'',foto:''},V='camps',M='',AUTO=true,tm,POLL=null,SEEN=new Set(),NM={},CMP=null;
+let SYERR='',RT=0,sb=null,U=null,P={nome:'',foto:''},V='camps',M='',AUTO=true,tm,POLL=null,SEEN=new Set(),NM={},CMP=null;
 try{AUTO=localStorage.getItem('sin-auto')!=='0'}catch(e){}
 const ok=r=>{if(r.error)throw r.error;return r.data};
 const nick=()=>P.nome||(U&&U.email||'jogador').split('@')[0];
@@ -1962,8 +1962,8 @@ const lib=()=>new Promise((res,no)=>{if(window.supabase)return res();const s=doc
 async function loadP(){let r;try{r=ok(await sb.from('perfis').select('nome,foto,icone,cor').eq('user_id',U.id).maybeSingle())}catch(e){try{r=ok(await sb.from('perfis').select('nome,foto').eq('user_id',U.id).maybeSingle())}catch(e2){}}P=Object.assign({nome:'',foto:'',icone:'',cor:''},r||{})}
 async function init(){
  try{await lib();sb=window.supabase.createClient(URL_,KEY);
-  const {data}=await sb.auth.getSession();U=data.session?data.session.user:null;if(U)await loadP();
-  sb.auth.onAuthStateChange((_e,s)=>{const n=s?s.user:null;if((n&&n.id)!==(U&&U.id)){U=n;setTimeout(async()=>{if(U)await loadP();render()},0)}});
+  const {data}=await sb.auth.getSession();U=data.session?data.session.user:null;if(U){await loadP();setTimeout(sync,300)}
+  sb.auth.onAuthStateChange((_e,s)=>{const n=s?s.user:null;if((n&&n.id)!==(U&&U.id)){U=n;setTimeout(async()=>{if(U){await loadP();sync()}render()},0)}});
  }catch(e){M='Erro: '+e.message}
  render();
 }
@@ -1972,7 +1972,7 @@ async function init(){
 const prev=Storage.prototype.setItem;
 Storage.prototype.setItem=function(k,v){
  const r=prev.apply(this,arguments);
- if(this===localStorage&&k==='sin-ficha'&&U&&AUTO){clearTimeout(tm);tm=setTimeout(()=>push().catch(()=>{}),2500)}
+ if(this===localStorage&&k==='sin-ficha'&&U&&AUTO){clearTimeout(tm);tm=setTimeout(()=>push().then(()=>{SYERR=''},e=>{SYERR=e.message||String(e)}),2500)}
  return r;
 };
 async function push(){
@@ -1983,6 +1983,38 @@ async function push(){
  row.owner=U.id;
  const d=ok(await sb.from('fichas').insert(row).select('id').single());
  S.cloud=Object.assign({},c,{fid:d.id});save();
+}
+function toast(t){const d=document.createElement('div');d.textContent=t;d.style.cssText='position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:200;background:#2a2350;color:#fff;padding:10px 16px;border-radius:10px;font:600 14px sans-serif;box-shadow:0 6px 18px rgba(0,0,0,.4)';document.body.appendChild(d)}
+/* sincroniza as fichas deste aparelho com a nuvem (sobe as novas, baixa as de outros aparelhos) */
+async function sync(manual){
+ if(!sb||!U)return false;
+ try{
+  const R=roster(),rows=ok(await sb.from('fichas').select('id,data,campanha_id,updated_at').eq('owner',U.id))||[];
+  let seen=[];try{seen=JSON.parse(localStorage.getItem('sin-seen'))||[]}catch(e){}
+  const byF={};Object.keys(R).forEach(k=>{const c=R[k].s&&R[k].s.cloud;if(c&&c.fid)byF[c.fid]=k});
+  let ch=false;
+  for(const r of rows){
+   const k=byF[r.id],tc=Date.parse(r.updated_at),cl={fid:r.id,cid:r.campanha_id};
+   if(!k){if(seen.indexOf(r.id)<0){R[uid()]={s:Object.assign({},r.data,{cloud:cl}),t:tc};ch=true}}
+   else if(tc>R[k].t+8000){R[k]={s:Object.assign({},r.data,{cloud:cl}),t:tc};ch=true}
+   else if(R[k].t>tc+8000){const sj=Object.assign({},R[k].s,{cloud:cl});ok(await sb.from('fichas').update({nome:(sj.info&&sj.info.nome)||'Sem nome',data:sj,campanha_id:r.campanha_id,updated_at:new Date(R[k].t).toISOString()}).eq('id',r.id))}
+  }
+  for(const k of Object.keys(R)){
+   const s=R[k].s;if(!s||(s.cloud&&s.cloud.fid))continue;
+   const d=ok(await sb.from('fichas').insert({owner:U.id,nome:(s.info&&s.info.nome)||'Sem nome',data:s,updated_at:new Date(R[k].t).toISOString()}).select('id').single());
+   R[k].s=Object.assign({},s,{cloud:{fid:d.id}});ch=true;
+  }
+  Object.keys(R).forEach(k=>{const c=R[k].s&&R[k].s.cloud;if(c&&c.fid&&seen.indexOf(c.fid)<0)seen.push(c.fid)});
+  try{localStorage.setItem('sin-seen',JSON.stringify(seen))}catch(e){}
+  SYERR='';
+  if(ch){
+   if(Date.now()-(+sessionStorage.getItem('sin-sy')||0)<15000)return false;
+   sessionStorage.setItem('sin-sy',Date.now());
+   prev.call(localStorage,'sin-roster',JSON.stringify(R));
+   toast('Sincronizando suas fichas com a nuvem...');setTimeout(()=>location.reload(),900);return true;
+  }
+  return false;
+ }catch(e){SYERR=e.message||String(e);if(manual)throw e;return false}
 }
 function abrir(row){
  const s=Object.assign({},row.data,{cloud:{fid:row.id,cid:row.campanha_id}});
@@ -2010,6 +2042,7 @@ async function act(a,v){
   }
   else if(a==='out'){await sb.auth.signOut();M='Você saiu.'}
   else if(a==='auto'){AUTO=!AUTO;try{localStorage.setItem('sin-auto',AUTO?'1':'0')}catch(e){}}
+  else if(a==='sync'){if(!await sync(true))M='Tudo já está sincronizado.'}
   else if(a==='save'){await push();M='Ficha salva na nuvem.'}
   else if(a==='psave'){
    const n=$('#pn-nome').value.trim().slice(0,30);P.nome=n;
@@ -2067,9 +2100,9 @@ async function vPerfil(){
  if(P.cor===''||P.cor==null||!PAL[+P.cor])P.cor=hs(U.id)%8;
  PK={obj:P,paint:paintPav};
  return sec('Perfil','<div style="display:flex;gap:18px;flex-wrap:wrap;align-items:flex-start"><div><div id="pavw">'+avt(Object.assign({id:U.id},P),true)+'</div><label style="margin-top:10px">Foto (opcional)<input id="pfoto" type="file" accept="image/*"></label><div class="bar" style="margin-top:6px"><button type="button" data-a="fotodel">Remover foto</button></div></div><div style="flex:1;min-width:230px"><label>Nome de usuário<input id="pn-nome" maxlength="30" value="'+esc(P.nome)+'" placeholder="'+esc((U.email||'').split('@')[0])+'"></label><div class="lb" style="margin-top:12px">Ícone e cor do avatar</div>'+picker(P)+'<div class="bar" style="margin-top:8px"><button data-a="psave">Salvar perfil</button></div><p class="note">Sem foto, seu avatar usa o ícone e a cor escolhidos. Entrou como '+esc(U.email)+'</p></div></div>')
- +sec('Fichas na nuvem','<div class="bar noprint"><button data-a="auto" aria-pressed="'+AUTO+'">Salvar automático: '+(AUTO?'ligado':'desligado')+'</button><button data-a="save">Salvar ficha aberta agora</button><button data-a="out">Sair da conta</button></div><div style="margin-top:12px">'
+ +sec('Fichas na nuvem','<div class="bar noprint"><button data-a="auto" aria-pressed="'+AUTO+'">Salvar automático: '+(AUTO?'ligado':'desligado')+'</button><button data-a="sync">Sincronizar agora</button><button data-a="save">Salvar ficha aberta agora</button><button data-a="out">Sair da conta</button></div><div style="margin-top:12px">'
  +(f.map(x=>'<div class="card hrow"><span><b>'+esc(x.nome)+'</b><em>'+new Date(x.updated_at).toLocaleString('pt-BR')+'</em></span><button data-a="open" data-v="'+x.id+'">Abrir</button></div>').join('')||'<p class="note">Nenhuma ainda. Abra uma ficha e clique em "Salvar ficha aberta agora".</p>')
- +'</div><p class="note">Se a ficha já existe neste aparelho, "Abrir" troca ela pela versão da nuvem e recarrega a página.</p>');
+ +'</div>'+(SYERR?'<p class="note bad">Última falha ao salvar na nuvem: '+esc(SYERR)+'</p>':'')+'<p class="note">Suas fichas deste aparelho sobem sozinhas e as de outros aparelhos aparecem no menu de Fichas ao entrar na conta. Se a ficha já existe neste aparelho, "Abrir" troca ela pela versão da nuvem e recarrega a página.</p>');
 }
 async function vCamps(){
  const c=(await campQ(cols=>sb.from('campanhas').select(cols)))||[];
