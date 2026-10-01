@@ -2160,9 +2160,311 @@ if(/^#campanha=/.test(location.hash))setTimeout(route,0);
 })();
 </script>
 </script>
+<script>
+(function(){
+if(window.__sinSkin)return;window.__sinSkin=1;
+
+/* ============ CONFIGURAÇÃO ============
+   OWNER_COL: nome da coluna da tabela "campanhas" que guarda o dono (mestre).
+   Deixe '' para o script tentar descobrir sozinho (mestre_id, owner_id, dono_id, criador_id, user_id...). */
+const OWNER_COL='';
+
+/* captura o cliente do Supabase criado pelo script das campanhas */
+(function(){
+ if(window.supabase||window.__sb)return;
+ let v;
+ Object.defineProperty(window,'supabase',{configurable:true,enumerable:true,get(){return v},
+  set(x){
+   if(x&&x.createClient){const o=Object.assign({},x),c=x.createClient;
+    o.createClient=function(){const r=c.apply(x,arguments);window.__sb=r;return r};v=o}
+   else v=x;
+  }});
+})();
+
+const R=document.documentElement,menu=document.getElementById('menu'),hub=document.getElementById('hub');
+if(!menu||!hub){alert('Cole este script DEPOIS de todos os outros, inclusive o das campanhas.');return}
+
+/* ---------- CSS ---------- */
+const BT='button:where(:not(.mo,.star,.d20,.pkb,.pkc))';
+const css=String.raw`
+#mfx{position:fixed;inset:0;pointer-events:none;z-index:130;display:none;overflow:hidden}
+html[data-ctx=menu] #mfx{display:block}
+html[data-fx=off] #mfx .bf,html[data-fx=off] #mfx::after{display:none}
+#mfx::before{content:"";position:absolute;inset:0;background:radial-gradient(2px 2px at 12% 22%,#fff,transparent),radial-gradient(2px 2px at 78% 12%,#fff,transparent),radial-gradient(1.5px 1.5px at 40% 70%,#fff,transparent),radial-gradient(2px 2px at 90% 60%,#fff,transparent),radial-gradient(1.5px 1.5px at 22% 88%,#fff,transparent),radial-gradient(1.5px 1.5px at 60% 35%,#fff,transparent);animation:mtw 5s ease-in-out infinite alternate}
+#mfx::after{content:"";position:absolute;inset:-25%;background:conic-gradient(from 0deg,rgba(124,58,237,.16),rgba(6,182,212,.12),rgba(236,72,153,.14),rgba(124,58,237,.16));filter:blur(70px);animation:mrot 70s linear infinite}
+#mfx .bf{position:absolute;opacity:.5}
+@keyframes mrot{to{rotate:360deg}}
+@keyframes mtw{from{opacity:.25}to{opacity:.95}}
+@keyframes mshim{to{background-position:300% 0}}
+@keyframes mshim2{to{background-position:200% 0}}
+
+@M{color-scheme:dark;--pn:rgba(255,255,255,.07);--pn2:rgba(255,255,255,.1);--tx:#f3eeff;--mu:#bdb3e6;--ln:rgba(255,255,255,.17);--ac:#7df3e1;--sg:#b79cff;--rd:#ff8aa6;color:var(--tx);
+background:radial-gradient(1px 1px at 20px 30px,#fff,transparent) 0 0/240px 240px,radial-gradient(1.5px 1.5px at 130px 90px,rgba(255,255,255,.8),transparent) 0 0/240px 240px,radial-gradient(1px 1px at 200px 180px,rgba(255,255,255,.7),transparent) 0 0/240px 240px,radial-gradient(60vmax 45vmax at 8% -8%,rgba(124,58,237,.6),transparent 62%),radial-gradient(55vmax 40vmax at 100% 8%,rgba(6,182,212,.38),transparent 62%),radial-gradient(60vmax 50vmax at 75% 112%,rgba(236,72,153,.38),transparent 62%),linear-gradient(180deg,#0b0820,#120a2e 60%,#0b0820);background-attachment:fixed}
+@M::before{content:"";display:block;position:sticky;top:0;z-index:5;height:5px;margin:-40px -16px 34px;background:linear-gradient(90deg,#ff6b7a,#ffb86b,#f4e76b,#6bff9e,#3fd0c9,#6b8bff,#9b6bff,#ff6b7a);background-size:200% 100%;animation:mshim2 12s linear infinite}
+@H::before{margin:-12px 0 7px}
+@M .mt{font:800 clamp(30px,5vw,46px) "Bricolage Grotesque",sans-serif;background:linear-gradient(90deg,#ff9bb0,#ffd27a,#9bffcf,#8fd3ff,#c3a6ff,#ff9bb0);background-size:300% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent;animation:mshim 9s linear infinite;filter:drop-shadow(0 0 18px rgba(167,139,250,.5));margin:6px 0 4px}
+@M .note{color:var(--mu)}
+@M .nb{display:flex;flex-direction:row;flex-wrap:wrap;gap:8px;align-items:center;padding:0;margin:14px 0;background:none;border:0;box-shadow:none;border-radius:0}
+@M .nb button{border-radius:999px;padding:8px 20px}
+@M .nb button[aria-pressed=true]{background:linear-gradient(135deg,#7c3aed,#06b6d4);color:#fff;border-color:transparent;box-shadow:0 6px 18px rgba(124,58,237,.5)}
+@M @B{background:rgba(255,255,255,.08);color:var(--tx);border:1px solid var(--ln);border-radius:10px;box-shadow:none;transition:transform .15s,background .15s,box-shadow .15s}
+@M @B:hover{background:linear-gradient(135deg,rgba(124,58,237,.6),rgba(6,182,212,.45));border-color:transparent;transform:translateY(-1px);box-shadow:0 6px 16px rgba(124,58,237,.35)}
+@M :is(input,select,textarea){background:rgba(0,0,0,.35);color:var(--tx);border:1px solid var(--ln);border-radius:10px}
+@M :is(input,select,textarea):focus{border-color:var(--ac);box-shadow:0 0 0 3px rgba(125,243,225,.2);outline:0}
+@N .mgrid .mc:nth-child(8n+1){--mc:#ff6b7a}@N .mgrid .mc:nth-child(8n+2){--mc:#ff9f43}@N .mgrid .mc:nth-child(8n+3){--mc:#f4c430}@N .mgrid .mc:nth-child(8n+4){--mc:#2ecc71}@N .mgrid .mc:nth-child(8n+5){--mc:#1ab5b0}@N .mgrid .mc:nth-child(8n+6){--mc:#4c7dff}@N .mgrid .mc:nth-child(8n+7){--mc:#9b6bff}@N .mgrid .mc:nth-child(8n+8){--mc:#ff78c8}
+@M .mc{background:rgba(255,255,255,.07);backdrop-filter:blur(12px);border:1px solid var(--ln);border-top:4px solid var(--mc,var(--c1,#b79cff));border-radius:16px;box-shadow:0 8px 28px rgba(0,0,0,.4);transition:transform .2s,box-shadow .2s}
+@M .mc:hover{transform:translateY(-6px);box-shadow:0 18px 44px color-mix(in srgb,var(--mc,var(--c1,#b79cff)) 45%,transparent)}
+@N .mp:not([style]){background:radial-gradient(circle at 30% 20%,rgba(255,255,255,.35),transparent 45%),linear-gradient(160deg,var(--mc),color-mix(in srgb,var(--mc) 40%,#1a0b3d));color:#fff;text-shadow:0 4px 14px rgba(0,0,0,.4)}
+@M .mi b{color:var(--tx)}@M .mi span{color:var(--mu)}
+@M .mc.new{border:2px dashed rgba(183,156,255,.6);background:transparent;box-shadow:none;backdrop-filter:none}
+@M .mc.new:hover{background:rgba(183,156,255,.1);box-shadow:0 0 30px rgba(124,58,237,.3)}
+@H .bg,@H header .bf,@H header .lt{display:none!important}
+@H header{background:linear-gradient(120deg,rgba(124,58,237,.35),rgba(6,182,212,.18) 60%,rgba(236,72,153,.25));border-bottom:4px solid;border-image:linear-gradient(90deg,#ff6b7a,#ffb86b,#f4e76b,#6bff9e,#3fd0c9,#6b8bff,#9b6bff) 1;box-shadow:0 10px 40px rgba(0,0,0,.45);backdrop-filter:blur(12px)}
+@H header p{color:var(--mu)}
+@H main>section{border-radius:18px;background:var(--pn);border:1px solid var(--ln);border-top:3px solid var(--sec,#b79cff);backdrop-filter:blur(14px);box-shadow:0 10px 36px rgba(0,0,0,.4)}
+@H :is(.box,.card){background:rgba(255,255,255,.06);border:1px solid var(--ln);border-radius:12px;box-shadow:none}
+@H .card{border-left:3px solid var(--sg)}
+@H .pkb{background:rgba(255,255,255,.08);border:1px solid var(--ln)}
+@H .pkb svg{fill:var(--sg)}
+@H .pkb[aria-pressed=true]{background:linear-gradient(135deg,#7c3aed,#06b6d4);border-color:transparent}
+@H .pkb[aria-pressed=true] svg{fill:#fff}
+html[data-tema=hub] .emb1{color:#b79cff}
+
+/* campanha: usa o tema escolhido pelo mestre */
+html[data-ctx=camp] #hub{background:none!important}
+html[data-ctx=camp] #menu,html[data-ctx=camp] body>header,html[data-ctx=camp] body>main,html[data-ctx=camp] body>.bg{display:none}
+html[data-ctx=camp] .rain{z-index:130}
+#hub .themes{display:none!important}
+.ctm{display:flex;flex-direction:row;align-items:center;gap:6px;font-size:14px;color:inherit}.ctm select{width:auto}
+
+@media(prefers-reduced-motion:reduce){#mfx::before,#mfx::after,@M .mt,@M::before{animation:none!important}}
+@media print{#mfx{display:none!important}}
+`.replace(/@M/g,'html[data-ctx=menu] :is(#menu,#hub)').replace(/@H/g,'html[data-ctx=menu] #hub').replace(/@N/g,'html[data-ctx=menu] #menu').replace(/@B/g,BT);
+const st=document.createElement('style');st.textContent=css;document.head.appendChild(st);
+
+/* camada decorativa dos menus */
+const fx=document.createElement('div');fx.id='mfx';fx.setAttribute('aria-hidden','true');
+const BC=['#ff6b7a','#ff9f43','#9b6bff','#1ab5b0','#4c7dff','#f4c430','#ff78c8','#2ecc71'],BL=[4,90,8,86,14,78,48,55],BTP=[18,12,55,48,86,82,92,30],BW=[44,38,52,46,40,50,36,34];
+fx.innerHTML=BC.map((c,i)=>`<svg class="bf" style="--c:${c};left:${BL[i]}%;top:${BTP[i]}%;width:${BW[i]}px;animation-delay:${-i*1.7}s,${-i*.4}s" viewBox="0 0 64 48"><use href="#bf"/></svg>`).join('');
+document.body.appendChild(fx);
+
+/* ---------- temas ---------- */
+const NAMES={claro:'Claro',escuro:'Escuro',singular:'Singularidade',quadrinhos:'Quadrinhos',apheiron:'Apheiron',ideias:'Mundo das Ideias',atormentado:'Atormentado'},ORDER=Object.keys(NAMES);
+const LOCKED={apheiron:'sin-unlock',ideias:'sin-unlock',atormentado:'sin-unlock-ator'};
+const ls=k=>{try{return localStorage.getItem(k)}catch(e){return null}};
+const allowed=t=>!!NAMES[t]&&(!LOCKED[t]||ls(LOCKED[t])==='1');
+let CT={};try{CT=JSON.parse(ls('sin-ctema'))||{}}catch(e){}
+const saveCT=()=>{try{localStorage.setItem('sin-ctema',JSON.stringify(CT))}catch(e){}};
+const cid=()=>(location.hash.match(/^#campanha=([\w-]+)/)||[])[1];
+function toast(m){const d=document.createElement('div');d.className='sintoast';d.setAttribute('role','status');d.textContent=m;document.body.appendChild(d);setTimeout(()=>d.remove(),4500)}
+
+/* ---------- TEMA DA CAMPANHA: vale para todos, só o mestre altera ---------- */
+const FT=new Set();
+function fetchCT(id){
+ const sb=window.__sb;if(!id||!sb||FT.has(id))return;FT.add(id);
+ sb.from('campanhas').select('tema').eq('id',id).maybeSingle().then(r=>{
+  if(!r||r.error)return;
+  const n=NAMES[r.data&&r.data.tema]?r.data.tema:undefined;
+  if(CT[id]!==n){if(n)CT[id]=n;else delete CT[id];saveCT();apply()}
+ },()=>{});
+}
+const campT=()=>{const id=cid();fetchCT(id);return NAMES[CT[id]]?CT[id]:'claro'};
+
+/* descobre se o usuário atual é o mestre desta campanha */
+const OWNER_COLS=['mestre_id','owner_id','dono_id','criador_id','user_id','mestre','owner','criador'];
+const MEST={};
+function checkMestre(id){
+ const sb=window.__sb;if(!id||!sb||id in MEST)return;MEST[id]=false;
+ const gu=sb.auth&&sb.auth.getUser?sb.auth.getUser():Promise.resolve({data:{user:sb.auth&&sb.auth.user&&sb.auth.user()}});
+ Promise.all([gu,sb.from('campanhas').select('*').eq('id',id).maybeSingle()]).then(([u,c])=>{
+  const user=u&&u.data&&u.data.user,row=c&&c.data;
+  if(!user||!row){setTimeout(()=>{delete MEST[id]},5000);return}
+  const col=OWNER_COL||OWNER_COLS.find(k=>k in row);
+  if(!col){console.warn('[sinSkin] coluna do mestre não encontrada em "campanhas". Defina OWNER_COL no topo do script.');return}
+  const v=row[col];
+  MEST[id]=v!=null&&(v===user.id||v===user.email);
+  decor();
+ },()=>{setTimeout(()=>{delete MEST[id]},5000)});
+}
+const isMestre=id=>{checkMestre(id);return !!MEST[id]};
+
+function setCT(id,t){
+ const sb=window.__sb,back=()=>{const s=document.getElementById('ctema');if(s)s.value=NAMES[CT[id]]?CT[id]:'claro'};
+ if(!sb||!isMestre(id)){toast('Só o mestre pode mudar o tema da campanha.');back();return}
+ sb.from('campanhas').update({tema:t}).eq('id',id).select('tema').then(r=>{
+  if(!r||r.error||!r.data||!r.data.length){toast('Não foi possível salvar o tema. Verifique a coluna "tema" e as permissões.');back();return}
+  CT[id]=t;saveCT();apply();toast('Tema da campanha salvo para todos.');
+ },()=>{toast('Falha de conexão ao salvar o tema.');back()});
+}
+
+/* jogadores recebem a mudança do mestre sem precisar recarregar */
+setInterval(()=>{const id=cid();if(ctx()==='camp'&&id){FT.delete(id);fetchCT(id)}},30000);
+
+/* ---------- TEMA DA FICHA: cada ficha guarda o seu (S.tema), sem herdar de outra ---------- */
+const fichaT=()=>allowed(S.tema)?S.tema:'claro';
+
+/* ---------- contexto: menu, ficha ou campanha ---------- */
+let EXP='',busy=false,menuWas=null,SY=0,prev='';
+const campView=()=>!hub.hidden&&/^#campanha=/.test(location.hash)&&!!hub.querySelector('main.two');
+const ctx=()=>!hub.hidden?(campView()?'camp':'menu'):(!menu.hidden?'menu':'ficha');
+function put(t){
+ EXP=t;if(R.dataset.tema!==t)R.dataset.tema=t;
+ if(NAMES[t]){
+  const n=document.getElementById('thn');if(n)n.textContent=NAMES[t];
+  document.querySelectorAll('.thpop [data-t]').forEach(b=>b.setAttribute('aria-checked',b.dataset.t===t));
+ }
+}
+function flags(c){
+ const n=(S&&S.sing)||0,on=c==='ficha',d=ls('sin-dist')!=='off',k=on&&d?n:0;
+ for(let i=1;i<=6;i++){R.toggleAttribute('data-c'+i,k>=i);R.toggleAttribute('data-h'+i,on&&n>=i)}
+ R.style.setProperty('--k',k);R.toggleAttribute('data-moth',on&&n>=6);
+}
+function decor(){
+ hub.querySelectorAll('.themes').forEach(e=>e.remove());
+ if(ctx()!=='camp')return;
+ const id=cid(),bar=hub.querySelector('header .bar'),old=hub.querySelector('.ctm');
+ /* quem não é mestre não vê o seletor */
+ if(!isMestre(id)){if(old)old.remove();return}
+ if(bar&&id&&hub.querySelector('#capaf')&&!old){
+  const l=document.createElement('label'),cur=NAMES[CT[id]]?CT[id]:'claro';
+  l.className='ctm noprint';l.innerHTML='🎨 Tema da campanha <select id="ctema" aria-label="Tema da campanha"></select>';
+  const s=l.querySelector('select');
+  s.innerHTML=ORDER.filter(t=>allowed(t)||t===cur).map(t=>`<option value="${t}"${t===cur?' selected':''}>${NAMES[t]}</option>`).join('');
+  s.onchange=()=>setCT(id,s.value);
+  bar.appendChild(l);
+ }
+}
+function apply(){
+ if(busy)return;busy=true;
+ try{
+  const cv=campView();
+  if(!cv&&menuWas!==null){
+   if(menu.hidden){menu.hidden=menuWas;if(!menuWas)document.body.style.overflow='hidden'}
+   menuWas=null;
+  }
+  if(cv&&menuWas===null){menuWas=menu.hidden;menu.hidden=true}
+  const c=ctx();
+  if(c==='camp'&&prev!=='camp'){SY=window.scrollY;FT.delete(cid())}
+  R.dataset.ctx=c;
+  put(c==='menu'?'hub':c==='camp'?campT():fichaT());
+  flags(c);
+  if(prev==='camp'&&c!=='camp')requestAnimationFrame(()=>scrollTo(0,SY));
+  prev=c;
+ }finally{busy=false}
+ decor();
+}
+
+/* só um clique real no seletor de temas muda o tema DA ficha aberta;
+   qualquer outra troca de data-tema (do script original, de outra ficha) é desfeita */
+let PICK=0;
+document.addEventListener('click',e=>{
+ if(e.target.closest&&e.target.closest('.thpop [data-t]')){PICK=1;setTimeout(()=>{PICK=0},0)}
+},true);
+new MutationObserver(()=>{
+ const t=R.dataset.tema;if(t===EXP)return;
+ if(ctx()==='ficha'&&NAMES[t]&&PICK){EXP=t;S.tema=t;save()}else put(EXP||'claro');
+}).observe(R,{attributes:true,attributeFilter:['data-tema']});
+
+/* distorção e seriedade só dentro da ficha */
+const FA=['data-moth'];for(let i=1;i<=6;i++)FA.push('data-c'+i,'data-h'+i);
+new MutationObserver(()=>{const c=ctx();if(c!=='ficha')flags(c)}).observe(R,{attributes:true,attributeFilter:FA});
+
+new MutationObserver(apply).observe(menu,{attributes:true,attributeFilter:['hidden']});
+new MutationObserver(apply).observe(hub,{attributes:true,attributeFilter:['hidden']});
+new MutationObserver(apply).observe(hub,{childList:true});
+addEventListener('hashchange',apply);addEventListener('popstate',apply);
+
+const b0=build;build=function(){b0();apply()};
+apply();
+})();
+</script>
+<script>
+(function(){
+if(window.__sinPatch1)return;window.__sinPatch1=1;
+const R=document.documentElement;
+
+/* ---------- CSS ---------- */
+const css=`
+/* 1) perícias: descrição por clique (nunca cortada) + treino visível */
+.sk div{flex-wrap:wrap}
+.sk .tip::after,.sk .tip::before{display:none!important}
+.sk span.tip{cursor:pointer}
+.sk div.tr{border-color:var(--ac);border-left-width:4px}
+.sk select{min-width:86px}
+.sk .skd{flex:0 0 100%;margin:0;padding:2px 4px 4px;font-size:13px;line-height:1.4;color:var(--mu)}
+
+/* 2) barra colorida do menu "Seus personagens": colada no topo */
+html[data-ctx=menu] #menu::before,html[data-ctx=menu] #hub::before{position:fixed!important;top:0!important;left:0;right:0;margin:0!important;height:5px;z-index:5}
+
+/* 3) borboletas com a estética de cada tema */
+html[data-tema=escuro] svg.bf{opacity:.8!important;color:#8fb4ff!important;filter:drop-shadow(0 0 6px currentColor) drop-shadow(0 0 14px currentColor)!important}
+html[data-tema=escuro] svg.bf:nth-of-type(even){color:#ffd27a!important}
+html[data-tema=apheiron]:not([data-c5]) svg.bf{display:block!important;color:#fff!important;opacity:.85!important;filter:drop-shadow(0 0 5px #fff) drop-shadow(0 0 16px rgba(255,255,255,.6))!important}
+html[data-tema=ideias] svg.bf{color:#f0abfc!important;opacity:.9!important;filter:drop-shadow(0 0 6px #e879f9) drop-shadow(0 0 16px #a855f7)!important}
+html[data-tema=ideias] svg.bf:nth-of-type(3n+2){color:#c4b5fd!important}
+html[data-tema=ideias] svg.bf:nth-of-type(3n){color:#fff!important}
+html[data-tema=quadrinhos]:not([data-c5]) svg.bf{display:block!important;opacity:.95!important;filter:none!important;color:#d4001a!important}
+html[data-tema=quadrinhos] svg.bf:nth-of-type(4n+2){color:#1d4ed8!important}
+html[data-tema=quadrinhos] svg.bf:nth-of-type(4n+3){color:#ffe14d!important}
+html[data-tema=quadrinhos] svg.bf:nth-of-type(4n){color:#4ade80!important}
+html[data-tema=atormentado]:not([data-c5]) svg.bf{display:block!important;color:#8e97a3!important;opacity:.38!important;filter:blur(.3px) drop-shadow(0 2px 3px #000)!important}
+@media(prefers-reduced-motion:no-preference){html[data-tema=atormentado]:not([data-c5]) svg.bf{animation:drift 48s ease-in-out infinite,flap 1.7s ease-in-out infinite alternate!important}}
+@media print{html[data-tema] svg.bf{display:none!important}}
+`;
+const st=document.createElement('style');st.textContent=css;document.head.appendChild(st);
+
+/* ---------- símbolos das borboletas ---------- */
+document.body.insertAdjacentHTML('beforeend','<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>'+
+'<g id="bw"><path d="M32 23C30 6 10 0 5 10c-3 8 8 16 27 13z"/><path d="M32 25C18 27 8 34 13 42c6 6 16-4 19-17z"/><path d="M32 23C34 6 54 0 59 10c3 8-8 16-27 13z"/><path d="M32 25C46 27 56 34 51 42c-6 6-16-4-19-17z"/></g>'+
+/* escuro: bioluminescente */
+'<symbol id="bf-escuro" viewBox="0 0 64 48"><use href="#bw" fill="currentColor" fill-opacity=".88" stroke="#fff3c4" stroke-width="1.1" stroke-linejoin="round"/><g fill="#fff8d6"><circle cx="16" cy="13" r="2.4"/><circle cx="48" cy="13" r="2.4"/><circle cx="20" cy="37" r="1.6"/><circle cx="44" cy="37" r="1.6"/></g><path d="M32 14v25" stroke="#fff3c4" stroke-width="2" stroke-linecap="round"/></symbol>'+
+/* apheiron: cristal angular de luz */
+'<symbol id="bf-aph" viewBox="0 0 64 48"><g fill="currentColor" stroke="#000" stroke-width=".8" stroke-linejoin="miter"><path d="M32 23L7 4L2 16L13 24Z"/><path d="M32 25L13 28L9 42L24 38Z"/><path d="M32 23L57 4L62 16L51 24Z"/><path d="M32 25L51 28L55 42L40 38Z"/></g><path d="M32 23L16 13M32 24L14 26M32 23L48 13M32 24L50 26" stroke="#000" stroke-width=".7" opacity=".55"/><path d="M32 12L34 24L32 38L30 24Z" fill="#fff" stroke="#000" stroke-width=".8"/></symbol>'+
+/* ideias: constelação */
+'<symbol id="bf-ide" viewBox="0 0 64 48"><use href="#bw" fill="currentColor" fill-opacity=".3" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/><path d="M14 11L22 17L12 24M50 11L42 17L52 24M20 36L28 32M44 36L36 32" fill="none" stroke="#fff" stroke-width=".8" opacity=".8"/><g fill="#fff"><circle cx="14" cy="11" r="1.8"/><circle cx="22" cy="17" r="1.4"/><circle cx="12" cy="24" r="1.4"/><circle cx="50" cy="11" r="1.8"/><circle cx="42" cy="17" r="1.4"/><circle cx="52" cy="24" r="1.4"/><circle cx="20" cy="36" r="1.2"/><circle cx="44" cy="36" r="1.2"/></g><path d="M32 14v24" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/></symbol>'+
+/* quadrinhos: contorno grosso, cor chapada */
+'<symbol id="bf-hq" viewBox="0 0 64 48"><use href="#bw" fill="currentColor" stroke="#000" stroke-width="3" stroke-linejoin="round"/><g fill="#fff" stroke="#000" stroke-width="1.6"><circle cx="15" cy="12" r="3.5"/><circle cx="49" cy="12" r="3.5"/></g><path d="M32 13v27" stroke="#000" stroke-width="4" stroke-linecap="round"/><path d="M32 14c-2-5-5-7-8-8M32 14c2-5 5-7 8-8" stroke="#000" stroke-width="2" fill="none" stroke-linecap="round"/></symbol>'+
+/* atormentado: mariposa pálida e gasta */
+'<symbol id="bf-atm" viewBox="0 0 64 48"><use href="#bw" fill="currentColor" fill-opacity=".7" stroke="#14171c" stroke-width="1" stroke-linejoin="round"/><g fill="#14171c" opacity=".55"><circle cx="15" cy="12" r="3.2"/><circle cx="49" cy="12" r="3.2"/><path d="M8 26l3-2 1 3zM56 26l-3-2-1 3zM24 40l2-4 2 3z"/></g><g fill="#c9d1db" opacity=".6"><circle cx="15" cy="12" r="1.2"/><circle cx="49" cy="12" r="1.2"/></g><path d="M32 15v25" stroke="#14171c" stroke-width="2.6" stroke-linecap="round"/></symbol>'+
+'</defs></svg>');
+
+/* troca o símbolo conforme o tema (fundo, cabeçalho, emblema, menus, borboletas soltas) */
+const MAP={escuro:'escuro',apheiron:'aph',ideias:'ide',quadrinhos:'hq',atormentado:'atm'};
+let pend=0;
+function skin(){
+ pend=0;const m=MAP[R.dataset.tema],id='#bf'+(m?'-'+m:'');
+ document.querySelectorAll('svg use').forEach(u=>{const h=u.getAttribute('href');if(h&&/^#bf(-[a-z]+)?$/.test(h)&&h!==id)u.setAttribute('href',id)});
+}
+const q=()=>{if(!pend){pend=1;requestAnimationFrame(skin)}};
+new MutationObserver(q).observe(R,{attributes:true,attributeFilter:['data-tema']});
+new MutationObserver(q).observe(document.body,{childList:true});
+const hub=document.getElementById('hub');if(hub)new MutationObserver(q).observe(hub,{childList:true});
+skin();
+
+/* ---------- perícias ---------- */
+const LBL=['RI (+0)','R (+2)','B (+4)','MB (+6)'];
+function perícias(){
+ document.querySelectorAll('#sk [data-s]').forEach(sel=>{
+  LBL.forEach((t,i)=>{if(sel.options[i])sel.options[i].textContent=t});
+  const row=sel.parentNode;row.classList.toggle('tr',+sel.value>0);
+  const sp=row.querySelector('.tip'),em=sp&&sp.querySelector('em');
+  if(em){const a=em.dataset.a||(em.dataset.a=em.textContent.trim()),v=mod(a);em.textContent=a+' '+(v>=0?'+':'')+v}
+  if(sp&&!sp.dataset.x){
+   sp.dataset.x=1;sp.setAttribute('role','button');sp.setAttribute('aria-expanded','false');
+   sp.addEventListener('click',()=>{
+    let d=row.querySelector('.skd');
+    if(d){d.remove();sp.setAttribute('aria-expanded','false')}
+    else{d=document.createElement('p');d.className='skd';d.textContent=sp.dataset.tip||'Sem descrição.';row.appendChild(d);sp.setAttribute('aria-expanded','true')}
+   });
+   sp.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();sp.click()}});
+  }
+ });
+}
+const c0=calc;calc=function(){c0();perícias()};
+calc();
+})();
+</script>
 
 </body>
 </html>
-
-
 
