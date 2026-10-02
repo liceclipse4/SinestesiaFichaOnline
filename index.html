@@ -2072,9 +2072,12 @@ async function vCamp(id){
  if(!c){CMP=null;return{t:'Campanha',sub:'',two:false,body:sec('Não encontrada','<p class="note">Campanha não encontrada, ou você não participa dela.</p>')}}
  const m=c.mestre==U.id;
  const [f,mb]=await Promise.all([sb.from('fichas').select('id,nome,data,owner').eq('campanha_id',id),sb.from('membros').select('user_id,nick').eq('campanha_id',id)]);
- const ms=ok(mb)||[],ids=ms.map(x=>x.user_id);
+ let ms=ok(mb)||[],rp=null;
+ try{const r=await sb.rpc('membros_campanha',{cid:String(id)});if(!r.error&&Array.isArray(r.data)&&r.data.length)rp=r.data}catch(e){}
+ if(rp){const have=new Set(ms.map(x=>x.user_id));rp.forEach(x=>{if(!have.has(x.user_id))ms.push({user_id:x.user_id,nick:x.nick})});ms.sort((a,b)=>(b.user_id==c.mestre)-(a.user_id==c.mestre))}
+ const ids=ms.map(x=>x.user_id);
  let pf=[];try{pf=ok(await sb.from('perfis').select('user_id,nome,foto,icone,cor').in('user_id',ids))||[]}catch(e){try{pf=ok(await sb.from('perfis').select('user_id,nome,foto').in('user_id',ids))||[]}catch(e2){}}
- NM={};ms.forEach(x=>{const p=pf.find(q=>q.user_id==x.user_id)||{};NM[x.user_id]={id:x.user_id,nome:p.nome||x.nick||'?',foto:p.foto||'',icone:p.icone,cor:p.cor}});
+ NM={};ms.forEach(x=>{const p=pf.find(q=>q.user_id==x.user_id)||(rp&&rp.find(q=>q.user_id==x.user_id))||{};NM[x.user_id]={id:x.user_id,nome:p.nome||x.nick||'?',foto:p.foto||'',icone:p.icone,cor:p.cor}});
  CMP={id,m,nome:c.nome};SEEN=new Set();
  AP={capa:c.capa||'',icone:c.icone||ICK[hs(id)%ICK.length],cor:(c.cor!=null&&c.cor!==''&&PAL[+c.cor])?+c.cor:hs(id)%8};PK={obj:AP,paint:paintPrev};
  const cv=cover(AP,id);
@@ -2206,8 +2209,8 @@ fx.innerHTML=BC.map((c,i)=>`<svg class="bf" style="--c:${c};left:${BL[i]}%;top:$
 document.body.appendChild(fx);
 
 /* ---------- temas ---------- */
-const NAMES={claro:'Claro',escuro:'Escuro',singular:'Singularidade',quadrinhos:'Quadrinhos',apheiron:'Apheiron',ideias:'Mundo das Ideias',noir:'Noir',municao:'Munição',lacos:'Laços',escopeta:'Escopeta',atlantida:'Atlântida',bizarro:'Bizarro'},ORDER=Object.keys(NAMES);
-const LOCKED={apheiron:'sin-unlock',ideias:'sin-unlock',noir:'sin-unlock-noir',municao:'sin-unlock-mister',lacos:'sin-unlock-lacos',escopeta:'sin-unlock-gerentes',atlantida:'sin-unlock-peixexity',bizarro:'sin-unlock-bizonho'};const ls=k=>{try{return localStorage.getItem(k)}catch(e){return null}};
+const NAMES={claro:'Claro',escuro:'Escuro',singular:'Singularidade',quadrinhos:'Quadrinhos',apheiron:'Apheiron',ideias:'Mundo das Ideias',noir:'Noir',municao:'Munição',lacos:'Laços',escopeta:'Escopeta',atlantida:'Atlântida',bizarro:'Bizarro',moranguetes:'Moranguetes'},ORDER=Object.keys(NAMES);
+const LOCKED={apheiron:'sin-unlock',ideias:'sin-unlock',noir:'sin-unlock-noir',municao:'sin-unlock-mister',lacos:'sin-unlock-lacos',escopeta:'sin-unlock-gerentes',atlantida:'sin-unlock-peixexity',bizarro:'sin-unlock-bizonho',moranguetes:'sin-unlock-grlpwr'};const ls=k=>{try{return localStorage.getItem(k)}catch(e){return null}};
 const allowed=t=>!!NAMES[t]&&(!LOCKED[t]||ls(LOCKED[t])==='1');
 let CT={};try{CT=JSON.parse(ls('sin-ctema'))||{}}catch(e){}
 const saveCT=()=>{try{localStorage.setItem('sin-ctema',JSON.stringify(CT))}catch(e){}};
@@ -3601,6 +3604,99 @@ pop.addEventListener('click',e=>{
  ap();pop.hidden=true;if(btn){btn.setAttribute('aria-expanded','false');btn.focus()}
 },true);
 try{if(localStorage.getItem('sin-tema3')==='bizarro'&&UN)ap()}catch(e){}
+})();
+</script>
+<script>
+/* ===== TEMA "MORANGUETES" (senha: digite grlpwr em Anotações) ===== */
+(function(){
+if(window.__sinMor)return;window.__sinMor=1;
+const pop=document.querySelector('.thpop'),btn=document.querySelector('.thbtn'),R=document.documentElement;
+if(!pop||!window.__sinSkin)return;
+const ln=document.createElement('link');ln.rel='stylesheet';ln.href='https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&display=swap';document.head.appendChild(ln);
+const BT='button:where(:not(.star,.d20,.mo,.mod,.wbtn,.thi,.ctile,.ci,.pkb,.pkc,.nm))';
+const css=String.raw`
+html:not([data-umor]) .thpop [data-t=moranguetes]{display:none!important}
+.mox{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden;display:none}
+@M .mox{display:block}
+html[data-fx=off] .mox{display:none!important}
+.mox>*{position:absolute;top:0;left:var(--l);width:var(--s);height:var(--s);opacity:.8;animation:mofall var(--d) linear infinite;animation-delay:var(--w)}
+.mox svg{display:block;width:100%;height:100%}
+@keyframes mofall{0%{transform:translate(0,-15vh) rotate(-14deg)}50%{transform:translate(34px,55vh) rotate(14deg)}100%{transform:translate(-12px,115vh) rotate(-10deg)}}
+@M{color-scheme:light;--pn:rgba(255,246,249,.95);--pn2:#ffe3ec;--tx:#3a0f1c;--mu:#9a4863;--ln:#f7b5ca;--ac:#d6103d;--sg:#ff4f8b;--rd:#d6103d;--mc:#ff4f8b}
+@M body{background:radial-gradient(circle,#ff9ebd 1.6px,transparent 2.2px) 0 0/26px 26px,linear-gradient(180deg,#ffe6ee,#ffc9db 55%,#ffb3cc);background-attachment:fixed;font-family:Fredoka,"Source Sans 3",system-ui,sans-serif;font-weight:500}
+@M header{background:radial-gradient(circle at 12% 0%,rgba(255,79,139,.35) 0,transparent 40%),linear-gradient(120deg,#1a0a10,#3d0b1c 55%,#1a0a10);border-bottom:10px solid;border-image:repeating-linear-gradient(90deg,#e0123f 0 14px,#fff 14px 28px) 1;box-shadow:0 6px 22px rgba(224,18,63,.4)}
+@M header p,@M header .themes>span,@M header .sep{color:#ffc2d6!important}
+@M :is(h1,h2,.sub,.box b,.nb .nt,.mti,#hub .mt){font-family:Fredoka,"Bricolage Grotesque",sans-serif!important}
+@M h1{color:#fff;-webkit-text-fill-color:#fff;background:none;text-shadow:2px 2px 0 #e0123f,4px 4px 0 #ff7fa8;letter-spacing:1px}
+@M #hub .mt{background:linear-gradient(90deg,#e0123f,#ff4f8b,#1a0a10);-webkit-background-clip:text;background-clip:text}
+@M main>section{border:2px solid var(--ln);border-top:8px solid var(--sec);border-radius:22px;box-shadow:0 5px 0 rgba(224,18,63,.14),0 10px 24px rgba(224,18,63,.14)}
+@M main>section:nth-child(3n+1){--sec:#e0123f}@M main>section:nth-child(3n+2){--sec:#ff7fa8}@M main>section:nth-child(3n){--sec:#1a0a10}
+@M h2::before{content:"\1F353";margin-right:8px}
+@M :is(.box,.card,.nb){background:linear-gradient(135deg,#fff,#ffe9f0);border-radius:16px}
+@M .box{border-left-color:#e0123f}@M .card{border-left-color:#ff4f8b}
+@M .box.sg b{color:#ff4f8b}@M .box.est b{color:#e0123f}
+@M :is(input,select,textarea){background:#fff;border:2px solid var(--ln);border-radius:12px}
+@M :is(input,select,textarea):focus{outline:0;border-color:#e0123f;box-shadow:0 0 0 3px rgba(224,18,63,.22)}
+@B{background:linear-gradient(180deg,#ff6b95,#e0123f);color:#fff;border:2px solid #fff;border-radius:999px;box-shadow:0 3px 0 #9d0a2b;font-weight:600;transition:translate .1s,box-shadow .1s}
+@B:hover{background:linear-gradient(180deg,#ff85a9,#f01c4d);border-color:#fff;translate:0 -2px;box-shadow:0 5px 0 #9d0a2b}
+@B:active{translate:0 2px;box-shadow:0 1px 0 #9d0a2b}
+@M header .bar button,@M .bar .addtog{background:#1a0a10;color:#ffc2d6;border:2px solid #ff7fa8;box-shadow:0 3px 0 #e0123f}
+@M .themes button[aria-pressed=true]{background:#ff4f8b;color:#fff}
+@M .star.on{color:#e0123f}@M .star:hover{color:#e0123f}
+@M .d20 polygon{fill:#fff0f5;stroke:#e0123f}@M .d20 text{fill:#3a0f1c}
+@M .d20.c20 polygon{fill:#ffd1e0;stroke:#1a0a10}@M .d20.c1 polygon{fill:#ffc2cf;stroke:#8a0a26}
+@M .sk strong{color:#d6103d}
+@M .tip::after{background:#fff0f5;color:#3a0f1c;border-color:#e0123f}
+@M .thpop{background:#fff0f5;border:2px solid #e0123f;border-radius:16px}
+@M .thpop .thi:hover{background:#ffd1e0!important}
+@M .sintoast{background:#e0123f;color:#fff;border:2px solid #fff;border-radius:999px;box-shadow:0 4px 0 #1a0a10}
+@M svg.bf{color:#ff7fa8!important}
+@M .emblem{filter:drop-shadow(0 2px 0 #e0123f)}
+@media(prefers-reduced-motion:reduce){.mox>*{animation:none!important}}
+@media print{.mox{display:none!important}}
+`.replace(/@M/g,'html[data-tema=moranguetes]').replace(/@B/g,'html[data-tema=moranguetes] '+BT);
+const st=document.createElement('style');st.textContent=css;document.head.appendChild(st);
+
+/* cenário: morangos e corações caindo */
+const rnd=n=>{const x=Math.sin(n*127.1+311.7)*43758.5453;return x-Math.floor(x)};
+const SB='<svg viewBox="0 0 24 28" aria-hidden="true"><path d="M12 27C5 23 2 16 3 11c1-4 5-5 9-3 4-2 8-1 9 3 1 5-2 12-9 16z" fill="#e0123f" stroke="#8a0a26" stroke-width="1"/><g fill="#ffd9e4"><ellipse cx="8" cy="13" rx=".9" ry="1.4"/><ellipse cx="14" cy="12" rx=".9" ry="1.4"/><ellipse cx="11" cy="17" rx=".9" ry="1.4"/><ellipse cx="16" cy="17" rx=".9" ry="1.4"/><ellipse cx="8" cy="19" rx=".9" ry="1.4"/><ellipse cx="12" cy="22" rx=".9" ry="1.4"/></g><path d="M12 9L7 4l4 1 1-3 1 3 4-1z" fill="#2e9e5b" stroke="#1d6b3b" stroke-width=".8" stroke-linejoin="round"/></svg>';
+const HC=['#ff7fa8','#e0123f','#1a0a10'];
+const hr=c=>'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21C4 15 2 11 2 8a5 5 0 0 1 10-1 5 5 0 0 1 10 1c0 3-2 7-10 13z" style="fill:'+c+'"/></svg>';
+let h='';
+for(let i=0;i<26;i++){
+ const b=i%2===0;
+ h+='<i style="--l:'+(rnd(i+3)*96).toFixed(0)+'%;--s:'+(b?24+rnd(i+7)*24:16+rnd(i+9)*16).toFixed(0)+'px;--d:'+(14+rnd(i+11)*14).toFixed(1)+'s;--w:'+(-rnd(i+13)*24).toFixed(1)+'s">'+(b?SB:hr(HC[i%3]))+'</i>';
+}
+const M=document.createElement('div');M.className='mox';M.setAttribute('aria-hidden','true');M.innerHTML=h;document.body.insertBefore(M,document.body.firstChild);
+
+/* item na lista de temas */
+pop.insertAdjacentHTML('beforeend','<button type="button" class="thi" role="menuitemradio" aria-checked="false" data-t="moranguetes"><i class="sw" style="background:radial-gradient(circle at 30% 30%,#ff7fa8 0 22%,transparent 23%),linear-gradient(135deg,#e0123f 55%,#1a0a10)"></i><span>Moranguetes</span><em>✓</em></button>');
+
+/* desbloqueio: digitar "grlpwr" em Anotações */
+let UN=false;try{UN=localStorage.getItem('sin-unlock-grlpwr')==='1'}catch(e){}
+if(UN)R.setAttribute('data-umor','');
+const RX=/\bgrlpwr\b/i;
+const toast=m=>{const d=document.createElement('div');d.className='sintoast';d.setAttribute('role','status');d.textContent=m;document.body.appendChild(d);setTimeout(()=>d.remove(),4500)};
+function unlock(){if(UN)return;UN=true;try{localStorage.setItem('sin-unlock-grlpwr','1')}catch(e){}R.setAttribute('data-umor','');toast('🔓 Tema desbloqueado: Moranguetes! 🍓')}
+const scan=()=>{try{if((S.nb||[]).some(b=>RX.test((b.t||'')+' '+(b.x||''))))unlock()}catch(e){}};
+document.addEventListener('input',e=>{if(e.target.closest&&e.target.closest('#nui')&&RX.test(e.target.value))unlock()});
+try{const b0=build;build=function(){b0();scan()}}catch(e){}
+if(btn)btn.addEventListener('click',scan);
+scan();
+
+/* escolher o tema */
+function ap(){
+ R.dataset.tema='moranguetes';
+ pop.querySelectorAll('[data-t]').forEach(b=>b.setAttribute('aria-checked',b.dataset.t==='moranguetes'));
+ const n=document.getElementById('thn');if(n)n.textContent='Moranguetes';
+ try{localStorage.setItem('sin-tema3','moranguetes')}catch(e){}
+}
+pop.addEventListener('click',e=>{
+ const b=e.target.closest('[data-t=moranguetes]');if(!b||!UN)return;
+ e.stopPropagation();e.preventDefault();
+ ap();pop.hidden=true;if(btn){btn.setAttribute('aria-expanded','false');btn.focus()}
+},true);
+try{if(localStorage.getItem('sin-tema3')==='moranguetes'&&UN)ap()}catch(e){}
 })();
 </script>
 </body>
