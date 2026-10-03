@@ -1876,9 +1876,11 @@ function go(v){nFlush();
  if(v==='fichas'){close_();const b=[...document.querySelectorAll('header .bar button')].find(x=>/Personagens/.test(x.textContent));if(b)b.click();return}
  V=v;M='';hub.scrollTop=0;
  {const isC=v.indexOf('c:')==0,u=isC?'#campanha='+v.slice(2):location.pathname+location.search;try{history[isC?'pushState':'replaceState'](null,'',u)}catch(e){try{if(isC)location.hash='campanha='+v.slice(2);else if(/^#campanha=/.test(location.hash))location.hash=''}catch(e2){}}}
- open_();render();
+ open_();skel();render();
 }
-function route(){const m=location.hash.match(/^#campanha=([\w-]+)/);if(m){V='c:'+m[1];open_();render()}else if(V.indexOf('c:')==0){V='camps';render()}}
+/* tela de "abrindo" mostrada na hora, enquanto a campanha carrega */
+function skel(){if(!U||!sb||V.indexOf('c:')!=0)return;try{hub.innerHTML=page('Abrindo campanha…','Só um instante',sec('Carregando','<p class="note">Buscando jogadores, fichas e notas…</p>'))}catch(e){}}
+function route(){const m=location.hash.match(/^#campanha=([\w-]+)/);if(m){V='c:'+m[1];open_();skel();render()}else if(V.indexOf('c:')==0){V='camps';render()}}
 window.addEventListener('popstate',route);
 document.addEventListener('click',e=>{const g=e.target.closest('[data-go]');if(g)go(g.dataset.go)});
 hub.addEventListener('click',e=>{const b=e.target.closest('[data-a]');if(b)act(b.dataset.a,b.dataset.v)});
@@ -2079,7 +2081,7 @@ async function render(){
  hub.querySelectorAll('[data-tm]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.tm==document.documentElement.dataset.tema));
  hub.querySelectorAll('[data-fb]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.fb==document.documentElement.dataset.fx));
  document.title=(V.indexOf('c:')==0&&CMP?CMP.nome+' · ':'')+T0;
- if(U&&CMP&&V.indexOf('c:')==0)startChat();
+ if(U&&CMP&&V.indexOf('c:')==0){startChat();loadPorts(my)}
 }
 async function vPerfil(){
  const f=ok(await sb.from('fichas').select('id,nome,updated_at').eq('owner',U.id).order('updated_at',{ascending:false}))||[];
@@ -2106,13 +2108,31 @@ async function vCamps(){
  const add='<article class="tk add"><button type="button" class="tk-go" data-a="newc"><span class="plus">＋</span><b>Criar nova campanha</b></button></article><article class="tk add"><button type="button" class="tk-go" data-a="joinp"><span class="plus">⌗</span><b>Entrar com código</b></button></article>';
  return '<div class="mw cpx">'+tabs('camps',true)+'<div class="cpx-hero"><div class="cpx-t"><span class="cpx-k">SINESTESIA · MESAS</span><h1>Suas mesas</h1><p>'+(c.length?'Escolha uma mesa para abrir o salão dela. O mestre personaliza a capa lá dentro.':'Você ainda não tem campanhas. Crie a primeira ou entre com um código!')+'</p></div><div class="cpx-n"><div><b>'+c.length+'</b><span>'+(c.length==1?'mesa':'mesas')+'</span></div><div><b>'+nm+'</b><span>como mestre</span></div></div></div>'+(M?'<p class="nmsg cpx-msg">'+esc(M)+'</p>':'')+'<div class="cpx-list">'+tk+add+'</div></div>';
 }
+/* fichas da campanha SEM o retrato (base64 pesado): os retratos chegam depois, em loadPorts */
+async function fichasLeves(id){
+ try{const r=await sb.from('fichas').select('id,nome,owner,cls:data->>cls,nivel:data->>nivel').eq('campanha_id',id);
+  if(!r.error)return{data:(r.data||[]).map(x=>({id:x.id,nome:x.nome,owner:x.owner,data:{cls:x.cls,nivel:x.nivel}}))}}catch(e){}
+ return await sb.from('fichas').select('id,nome,data,owner').eq('campanha_id',id);
+}
+async function loadPorts(my){
+ if(!CMP||!sb)return;const id=CMP.id;
+ try{
+  const r=await sb.from('fichas').select('id,port:data->>port').eq('campanha_id',id);
+  if(r.error||!r.data||my!==RT||!CMP||CMP.id!==id||hub.hidden)return;
+  r.data.forEach(x=>{if(!img(x.port))return;const e=hub.querySelector('.fc-p[data-f="'+x.id+'"]');if(e){e.style.backgroundImage='url("'+x.port+'")';e.innerHTML=''}});
+ }catch(e){}
+}
 async function vCamp(id){
- const c=await campQ(cols=>sb.from('campanhas').select(cols).eq('id',id).maybeSingle());
+ const [c,f,mb,rr]=await Promise.all([
+  campQ(cols=>sb.from('campanhas').select(cols).eq('id',id).maybeSingle()),
+  fichasLeves(id),
+  sb.from('membros').select('user_id,nick').eq('campanha_id',id),
+  Promise.resolve(sb.rpc('membros_campanha',{cid:String(id)})).catch(()=>null)
+ ]);
  if(!c){CMP=null;return{t:'Campanha',sub:'',two:false,body:sec('Não encontrada','<p class="note">Campanha não encontrada, ou você não participa dela.</p>')}}
  const m=c.mestre==U.id;
- const [f,mb]=await Promise.all([sb.from('fichas').select('id,nome,data,owner').eq('campanha_id',id),sb.from('membros').select('user_id,nick').eq('campanha_id',id)]);
- let ms=ok(mb)||[],rp=null;
- try{const r=await sb.rpc('membros_campanha',{cid:String(id)});if(!r.error&&Array.isArray(r.data)&&r.data.length)rp=r.data}catch(e){}
+  let ms=ok(mb)||[],rp=null;
+ if(rr&&!rr.error&&Array.isArray(rr.data)&&rr.data.length)rp=rr.data;
  if(rp){const have=new Set(ms.map(x=>x.user_id));rp.forEach(x=>{if(!have.has(x.user_id))ms.push({user_id:x.user_id,nick:x.nick})});ms.sort((a,b)=>(b.user_id==c.mestre)-(a.user_id==c.mestre))}
  const ids=ms.map(x=>x.user_id);
  let pf=[];try{pf=ok(await sb.from('perfis').select('user_id,nome,foto,icone,cor').in('user_id',ids))||[]}catch(e){try{pf=ok(await sb.from('perfis').select('user_id,nome,foto').in('user_id',ids))||[]}catch(e2){}}
@@ -2126,7 +2146,7 @@ async function vCamp(id){
  const party='<div class="party">'+ms.map(x=>{const g=x.user_id==c.mestre;return '<div class="pm'+(g?' gm':'')+'">'+avt(NM[x.user_id])+'<span><b>'+esc(NM[x.user_id].nome)+'</b><em>'+(g?'♛ Mestre':'Jogador')+'</em></span></div>'}).join('')+'</div>';
  const apar=m?'<section class="full s-ap"><button type="button" class="apt" data-a="atog" aria-expanded="'+APO+'" aria-controls="aparBody"><span>🎨 Personalizar campanha</span><i>'+(APO?'Fechar ▴':'Abrir ▾')+'</i></button><div id="aparBody"'+(APO?'':' hidden')+'><div class="apar"><div class="cprevw"><div id="cprev" '+cv.attrs+'>'+cv.inner+'</div></div><div style="flex:1;min-width:230px"><label>Imagem de capa<input id="capaf" type="file" accept="image/*"></label><div class="bar" style="margin-top:8px"><button type="button" data-a="capadel">Remover imagem</button></div><div class="lb" style="margin-top:12px">Ícone e cor</div>'+picker(AP)+'<div class="bar" style="margin-top:8px"><button data-a="asave">Salvar aparência</button></div><p class="note">A imagem é reduzida automaticamente. Sem imagem, a capa usa o ícone e a cor.</p></div></div></div></section>':'';
  const fl=(ok(f)||[]).map(x=>{const dd=x.data||{},pt=img(dd.port),ow=NM[x.owner]||{};
-  return '<div class="fc"><span class="fc-p"'+(pt?' style="background-image:url(&quot;'+dd.port+'&quot;)"':'')+'>'+(pt?'':avt(NM[x.owner]))+'</span><span class="fc-i"><b>'+esc(x.nome)+'</b><em>de '+esc(ow.nome||'?')+'</em><span class="fc-t"><i>'+esc(dd.cls||'Sem classe')+'</i><i>Nível '+(dd.nivel||1)+'</i></span></span><span class="fc-a"><button data-a="open" data-v="'+x.id+'">'+(m&&x.owner!=U.id?'Ver e editar':'Abrir')+'</button>'+(m?'<button type="button" class="danger" data-a="delf" data-v="'+x.id+'" data-n="'+esc(x.nome)+'" aria-label="Excluir a ficha de '+esc(x.nome)+'">Excluir</button>':'')+'</span></div>'}).join('')||'<p class="note">Nenhuma ficha enviada ainda.</p>';
+  return '<div class="fc"><span class="fc-p" data-f="'+esc(x.id)+'"'+(pt?' style="background-image:url(&quot;'+dd.port+'&quot;)"':'')+'>'+(pt?'':avt(NM[x.owner]))+'</span><span class="fc-i"><b>'+esc(x.nome)+'</b><em>de '+esc(ow.nome||'?')+'</em><span class="fc-t"><i>'+esc(dd.cls||'Sem classe')+'</i><i>Nível '+(dd.nivel||1)+'</i></span></span><span class="fc-a"><button data-a="open" data-v="'+x.id+'">'+(m&&x.owner!=U.id?'Ver e editar':'Abrir')+'</button>'+(m?'<button type="button" class="danger" data-a="delf" data-v="'+x.id+'" data-n="'+esc(x.nome)+'" aria-label="Excluir a ficha de '+esc(x.nome)+'">Excluir</button>':'')+'</span></div>'}).join('')||'<p class="note">Nenhuma ficha enviada ainda.</p>';
  const body=sec('Jogadores',party,'full s-pl')+apar
   +sec('Fichas','<div class="bar noprint">'+(mine?'<button data-a="ret">Retirar a ficha aberta daqui</button>':'<button data-a="env" data-v="'+id+'">Enviar a ficha aberta ('+esc((S.info&&S.info.nome)||'sem nome')+')</button>')+'</div><div style="margin-top:10px">'+fl+'</div>'+(m?'<p class="note">Suas edições nas fichas dos jogadores vão para a nuvem com o "Salvar automático" ligado (aba Perfil).</p>':''),'s-fi')
   +sec('Bloco de notas compartilhado','<p class="note" style="margin-top:0">Todos os jogadores desta campanha veem e editam estes blocos.</p><div id="cnotes"></div>','s-nt')
@@ -4276,6 +4296,12 @@ try{if(localStorage.getItem('sin-tema3')==='moranguetes'&&UN)ap()}catch(e){}
 #hub .pfx-main input[type=file]{max-width:100%;min-width:0}
 }
 </style>
+<style id="sin-thscroll">
+.thpop{max-height:calc(100vh - 16px);max-height:calc(100dvh - 16px);overflow-y:auto!important;-webkit-overflow-scrolling:touch;touch-action:pan-y;overscroll-behavior:contain}
+@media (max-width:900px),(pointer:coarse){
+ .thpop{top:8px!important;bottom:auto!important;left:50%!important;right:auto!important;transform:translateX(-50%);max-height:calc(100vh - 16px)!important;max-height:calc(100dvh - 16px)!important}
+}
+</style>
 <script>
 /* ===== Seletor de temas em grade (cole por último, depois de todos os scripts de tema) ===== */
 (function(){
@@ -4328,7 +4354,7 @@ new MutationObserver(()=>{
  if(pop.hidden)return;
  if(q.value){q.value='';filtrar()}
  const top=parseFloat(pop.style.top)||0;
- pop.style.maxHeight=Math.max(220,innerHeight-top-12)+'px';
+ pop.style.maxHeight=(matchMedia('(max-width:900px),(pointer:coarse)').matches?innerHeight-16:Math.max(220,innerHeight-top-12))+'px';
  const cur=pop.querySelector('.thi[aria-checked=true]');
  if(cur)requestAnimationFrame(()=>cur.scrollIntoView({block:'nearest'}));
 }).observe(pop,{attributes:true,attributeFilter:['hidden']});
@@ -4492,21 +4518,72 @@ const known=()=>[...document.querySelectorAll('.thpop .thi[data-t]')].map(b=>({k
 
 /* ---------- dados do visual ---------- */
 const VIS={};            /* cache por usuário */
-let DRAFT=null,MY=null,POPEN=false,IOPEN=false;   /* rascunho editável do meu perfil / bloco aberto? */
+let DRAFT=null,MY=null,POPEN=false,IOPEN=false,DIRTY=false,LF=0;   /* rascunho editável do meu perfil / bloco aberto? */
+/* SoundCloud: só aceita links https de soundcloud.com (guardado em perfis.visual.sc, sem coluna nova) */
+function scUrl(u){
+ if(typeof u!=='string')return'';u=u.trim();if(!u||u.length>300)return'';
+ let p;try{p=new URL(u)}catch(e){return''}
+ if(p.protocol!=='https:'&&p.protocol!=='http:')return'';
+ const h=p.hostname.toLowerCase();
+ if(h!=='soundcloud.com'&&h!=='www.soundcloud.com'&&h!=='m.soundcloud.com'&&h!=='on.soundcloud.com')return'';
+ if(!/^\/[A-Za-z0-9_\-.\/%~+]{2,}$/.test(p.pathname))return'';
+ return 'https://'+(h==='on.soundcloud.com'?h:'soundcloud.com')+p.pathname;
+}
+function scPlayer(u){
+ if(!u)return'';
+ return '<div class="scp" data-u="'+esc(u)+'"><button type="button" class="scp-b scp-pp" aria-label="Tocar ou pausar">▶</button>'
+  +'<div class="scp-m"><div class="scp-t"><b class="scp-ti">🎧 SoundCloud</b><span class="scp-ar"></span></div><div class="scp-r"><div class="scp-bar" role="slider" aria-label="Progresso da música" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i></i></div><span class="scp-tm">0:00</span></div></div>'
+  +'<button type="button" class="scp-b scp-sk scp-pv" aria-label="Faixa anterior" hidden>⏮</button><button type="button" class="scp-b scp-sk scp-nx" aria-label="Próxima faixa" hidden>⏭</button>'
+  +'<a class="scp-lk" href="'+esc(u)+'" target="_blank" rel="noopener noreferrer" aria-label="Abrir no SoundCloud" title="Abrir no SoundCloud">↗</a>'
+  +'<iframe class="scp-f" title="Player do SoundCloud" scrolling="no" allow="autoplay" src="https://w.soundcloud.com/player/?url='+encodeURIComponent(u)+'&auto_play=false&hide_related=true&show_comments=false&show_user=true&show_reposts=false&show_teaser=false&visual=false"></iframe></div>';
+}
+let SCAPI=null;
+function loadScApi(){
+ if(window.SC&&window.SC.Widget)return Promise.resolve();
+ if(SCAPI)return SCAPI;
+ SCAPI=new Promise((res,no)=>{const s=document.createElement('script');s.src='https://w.soundcloud.com/player/api.js';s.onload=()=>window.SC&&window.SC.Widget?res():no(new Error('sc'));s.onerror=()=>{SCAPI=null;no(new Error('sc'))};document.head.appendChild(s)});
+ return SCAPI;
+}
+function scMount(el){
+ if(!el||el.__sc)return;el.__sc=1;
+ const q=s=>el.querySelector(s),f=q('.scp-f'),pp=q('.scp-pp'),ti=q('.scp-ti'),ar=q('.scp-ar'),bar=q('.scp-bar'),fill=bar.firstElementChild,tm=q('.scp-tm'),pv=q('.scp-pv'),nx=q('.scp-nx');
+ let w=null,ready=false,want=false,playing=false,dur=0,tmo=0;
+ const fmt=ms=>{const s=Math.max(0,Math.floor(ms/1000));return Math.floor(s/60)+':'+String(s%60).padStart(2,'0')};
+ const fb=()=>{el.classList.add('fb')};/* plano B: mostra o player original do SoundCloud */
+ const info=()=>{try{w.getCurrentSound(s=>{if(!s)return;ti.textContent=s.title||'SoundCloud';ar.textContent=(s.user&&s.user.username)||'';dur=s.duration||0;tm.textContent=fmt(0)+(dur?' / '+fmt(dur):'')})}catch(e){}};
+ const mark=p=>{playing=p;el.classList.toggle('on',p);pp.textContent=p?'❚❚':'▶'};
+ loadScApi().then(()=>{
+  w=window.SC.Widget(f);const E=window.SC.Widget.Events;
+  w.bind(E.READY,()=>{ready=true;info();try{w.getSounds(a=>{if(a&&a.length>1){pv.hidden=false;nx.hidden=false}})}catch(e){}if(want){want=false;try{w.play()}catch(e){}}});
+  w.bind(E.PLAY,()=>{clearTimeout(tmo);mark(true);info()});
+  w.bind(E.PAUSE,()=>mark(false));
+  w.bind(E.FINISH,()=>{mark(false);fill.style.width='0%'});
+  w.bind(E.PLAY_PROGRESS,d=>{const p=Math.max(0,Math.min(1,d.relativePosition||0));fill.style.width=(p*100)+'%';bar.setAttribute('aria-valuenow',Math.round(p*100));tm.textContent=fmt(d.currentPosition||0)+(dur?' / '+fmt(dur):'')});
+ }).catch(fb);
+ pp.addEventListener('click',()=>{
+  if(!w){fb();return}
+  if(!ready){want=true;return}
+  try{w.toggle()}catch(e){fb();return}
+  clearTimeout(tmo);if(!playing)tmo=setTimeout(()=>{if(!playing)fb()},3500);
+ });
+ pv.addEventListener('click',()=>{if(w&&ready){try{w.prev()}catch(e){}}});
+ nx.addEventListener('click',()=>{if(w&&ready){try{w.next()}catch(e){}}});
+ bar.addEventListener('click',e=>{if(!w||!ready||!dur)return;const r=bar.getBoundingClientRect();try{w.seekTo(Math.max(0,Math.min(1,(e.clientX-r.left)/r.width))*dur)}catch(_){}});
+}
+const scMountAll=root=>{if(root)root.querySelectorAll('.scp').forEach(scMount)};
 function clean(o){
  if(typeof o==='string'){try{o=JSON.parse(o)}catch(e){o=null}}
- if(!o||typeof o!=='object')return{t:'',bg:'',bn:'',tx:0};
+ if(!o||typeof o!=='object')return{t:'',bg:'',bn:'',tx:0,bio:'',sc:'',ts:0};
  const t=/^[a-z0-9_-]{1,30}$/.test(o.t||'')?o.t:'';
- return{t,bg:(typeof o.bg==='string'&&o.bg.length<1500000&&OKI.test(o.bg))?o.bg:'',bn:(typeof o.bn==='string'&&o.bn.length<600000&&OKI.test(o.bn))?o.bn:'',tx:o.tx?1:0};
+ return{t,bg:(typeof o.bg==='string'&&o.bg.length<1500000&&OKI.test(o.bg))?o.bg:'',bn:(typeof o.bn==='string'&&o.bn.length<600000&&OKI.test(o.bn))?o.bn:'',tx:o.tx?1:0,bio:typeof o.bio==='string'?o.bio.slice(0,600):'',sc:scUrl(o.sc),ts:+o.ts>0?+o.ts:0};
 }
 async function myId(){if(MY)return MY;const s=sbc();if(!s)return null;try{const r=await s.auth.getSession();MY=r.data&&r.data.session&&r.data.session.user.id||null}catch(e){}return MY}
 async function loadVis(id){
- const s=sbc();if(!s)return clean(null);
- try{
-  const r=await s.from('perfis').select('visual').eq('user_id',id).maybeSingle();
-  if(!r.error)return clean(r.data&&r.data.visual);
- }catch(e){}
- try{const l=localStorage.getItem('sin-pvis-'+id);if(l)return clean(l)}catch(e){}
+ const s=sbc();let rem=null;
+ if(s){try{const r=await s.from('perfis').select('visual').eq('user_id',id).maybeSingle();if(!r.error)rem=r.data&&r.data.visual?clean(r.data.visual):null}catch(e){}}
+ let loc=null;try{const l=localStorage.getItem('sin-pvis-'+id);if(l)loc=clean(l)}catch(e){}
+ if(rem&&(!loc||rem.ts>=loc.ts))return rem;
+ if(loc){loc.heal=!!s&&(!rem||loc.ts>rem.ts);return loc}
  return clean(null);
 }
 
@@ -4571,7 +4648,10 @@ async function injectMine(){
  if(!root.dataset.base&&root.dataset.base!=='')root.dataset.base=root.getAttribute('style')||'';
  const card=root.querySelector('.pfx-id');
  const id=await myId();if(!id)return;
- if(!DRAFT)DRAFT=Object.assign({},VIS[id]||(VIS[id]=await loadVis(id)));
+ if(card&&!card.parentElement.classList.contains('pfx-side')){const w=document.createElement('div');w.className='pfx-side';card.parentNode.insertBefore(w,card);w.appendChild(card)}
+ /* busca a versão da nuvem (a cada abertura, no máx. 1x/15s) para refletir mudanças feitas em outro aparelho */
+ if(!DRAFT||(!DIRTY&&Date.now()-LF>15000)){const fr=await loadVis(id);LF=Date.now();VIS[id]=fr;DRAFT=Object.assign({},fr)}
+ if(DRAFT.heal){delete DRAFT.heal;save()}
  if(!hub.contains(root))return;
  if(!main.querySelector('#pfvSec')){
   const sec=document.createElement('section');sec.id='pfvSec';
@@ -4586,13 +4666,28 @@ async function injectMine(){
    +'<label class="pfv-ck"><input type="checkbox" id="pfv-tx"> Mostrar o texto “Passaporte de aventureiro” sobre a imagem</label>'
    +'<div class="pfv-r"><button type="button" data-pv="save">Salvar aparência do perfil</button></div>'
    +'<p class="note pfv-m" id="pfv-msg" aria-live="polite">As imagens são reduzidas automaticamente. Todos que abrirem seu perfil verão essa aparência.</p></div>';
-  main.insertBefore(sec,main.firstChild);
+  const bs=document.createElement('section');bs.id='pfvBio';bs.className='s-ap';
+  bs.innerHTML='<h2>Biografia</h2><label class="wide">Conte um pouco sobre você ou sobre seus personagens<textarea id="pfv-bio" rows="5" maxlength="600" placeholder="Escreva sua biografia…"></textarea></label><p class="note" id="pfv-bio-n"></p><div class="bar" style="margin-top:8px"><button type="button" data-pfb="save">Salvar biografia</button><button type="button" data-pfb="view">Ver meu perfil</button></div><p class="note pfv-m" id="pfv-bio-msg" aria-live="polite">Todos que abrirem seu perfil verão a biografia.</p>';
+  main.insertBefore(sec,main.firstChild);main.insertBefore(bs,sec);
+  {const ss=document.createElement('section');ss.id='pfvSc';ss.className='s-ap';
+   ss.innerHTML='<h2>🎧 Música (SoundCloud)</h2><label class="wide">Link de uma música, álbum ou playlist do SoundCloud<input id="pfv-sc" type="url" inputmode="url" maxlength="300" placeholder="https://soundcloud.com/artista/musica"></label><div class="bar" style="margin-top:8px"><button type="button" data-pfs="save">Salvar música</button><button type="button" data-pfs="del">Remover</button></div><p class="note pfv-m" id="pfv-sc-msg" aria-live="polite">O player aparece logo abaixo do seu passaporte; quem abrir seu perfil poderá apertar play e ouvir.</p>';
+   main.insertBefore(ss,sec);
+   ss.querySelector('#pfv-sc').value=(DRAFT&&DRAFT.sc)||''}
+  {const ta=bs.querySelector('#pfv-bio'),n=bs.querySelector('#pfv-bio-n'),cnt=()=>{n.textContent=ta.value.length+'/600'};ta.value=(DRAFT&&DRAFT.bio)||'';cnt();ta.addEventListener('input',cnt)}
  }
  foldId(main);
  syncUi();
  applyVis(root,card,DRAFT);
+ paintMus();
  root.dataset.pfvOk='1';
  (window.requestIdleCallback||setTimeout)(()=>{try{if(!IDX)buildIdx()}catch(e){}});
+}
+/* player da música logo abaixo do passaporte (meu perfil) */
+function paintMus(){
+ const side=hub.querySelector('.pfx-side');if(!side||!DRAFT)return;
+ side.querySelectorAll('.scp').forEach(x=>x.remove());
+ if(!DRAFT.sc)return;
+ side.insertAdjacentHTML('beforeend',scPlayer(DRAFT.sc));scMountAll(side);
 }
 /* "Identidade" vira um bloco que abre e fecha (os campos continuam no HTML, só escondidos) */
 function foldId(main){
@@ -4615,8 +4710,8 @@ const say=(h,bad)=>{const m=hub.querySelector('#pfv-msg');if(m){m.className='not
 function repaint(){const root=hub.querySelector('.mw.pfx');if(root)applyVis(root,root.querySelector('.pfx-id'),DRAFT);syncUi()}
 
 async function save(){
- const s=sbc(),id=await myId();if(!s||!id)return say('Entre na sua conta para salvar.',1);
- const json=JSON.stringify(DRAFT);
+ const s=sbc(),id=await myId();if(!s||!id){say('Entre na sua conta para salvar.',1);return 'Entre na sua conta para salvar.'}
+ DRAFT.ts=Date.now();const json=JSON.stringify(DRAFT);
  try{localStorage.setItem('sin-pvis-'+id,json)}catch(e){}
  say('Salvando…');
  try{
@@ -4626,13 +4721,43 @@ async function save(){
    const nm=(hub.querySelector('#pn-nome')||{value:''}).value.trim().slice(0,30);
    r=await s.from('perfis').upsert({user_id:id,nome:nm,visual:json});if(r.error)throw r.error;
   }
-  VIS[id]=clean(json);say('Aparência salva ✓');
+  VIS[id]=clean(json);DIRTY=false;LF=Date.now();say('Aparência salva ✓');return '';
  }catch(e){
   const t=String(e.message||e);
   if(/visual/i.test(t))say('Não salvou na nuvem: falta a coluna no banco. No Supabase, abra o SQL Editor e rode:<code>'+esc(SQL)+'</code>Por enquanto a aparência só aparece neste aparelho.',1);
   else say('Não salvou: '+esc(t),1);
+  return t||'erro';
  }
 }
+
+/* ---------- biografia ---------- */
+hub.addEventListener('click',async e=>{
+ const b=e.target.closest('[data-pfb]');if(!b)return;
+ if(b.dataset.pfb==='view'){const id=await myId();if(id)openProfile(id);return}
+ const ta=hub.querySelector('#pfv-bio'),msg=hub.querySelector('#pfv-bio-msg');if(!ta||!msg||!DRAFT)return;
+ DRAFT.bio=ta.value.trim().slice(0,600);
+ msg.className='note pfv-m';msg.textContent='Salvando…';
+ const er=await save();
+ if(er){msg.className='note pfv-m bad';msg.innerHTML='Não salvou: '+esc(er)+(/visual/i.test(er)?'<code>'+esc(SQL)+'</code>':'')}
+ else{msg.className='note pfv-m';msg.textContent='Biografia salva ✓'}
+});
+
+/* ---------- SoundCloud ---------- */
+hub.addEventListener('click',async e=>{
+ const b=e.target.closest('[data-pfs]');if(!b||!DRAFT)return;
+ const inp=hub.querySelector('#pfv-sc'),msg=hub.querySelector('#pfv-sc-msg');if(!inp||!msg)return;
+ if(b.dataset.pfs==='del'){DRAFT.sc='';inp.value=''}
+ else{
+  const raw=inp.value.trim(),u=scUrl(raw);
+  if(raw&&!u){msg.className='note pfv-m bad';msg.textContent='Esse link não parece ser do SoundCloud. Cole o endereço completo (https://soundcloud.com/...).';return}
+  DRAFT.sc=u;inp.value=u;
+ }
+ DIRTY=true;paintMus();
+ msg.className='note pfv-m';msg.textContent='Salvando…';
+ const er=await save();
+ if(er){msg.className='note pfv-m bad';msg.innerHTML='Não salvou: '+esc(er)+(/visual/i.test(er)?'<code>'+esc(SQL)+'</code>':'')}
+ else msg.textContent=DRAFT.sc?'Música salva ✓ Quem abrir seu perfil poderá ouvir.':'Música removida ✓';
+});
 
 /* ---------- ações da seção ---------- */
 hub.addEventListener('click',async e=>{
@@ -4640,14 +4765,14 @@ hub.addEventListener('click',async e=>{
  const a=b.dataset.pv;
  if(a==='togid'){IOPEN=!IOPEN;b.setAttribute('aria-expanded',IOPEN);const i_=b.querySelector('i');if(i_)i_.textContent=IOPEN?'Fechar ▴':'Abrir ▾';const bd=hub.querySelector('#pfvIdBody');if(bd)bd.hidden=!IOPEN}
  else if(a==='tog'){POPEN=!POPEN;b.setAttribute('aria-expanded',POPEN);const i_=b.querySelector('i');if(i_)i_.textContent=POPEN?'Fechar ▴':'Abrir ▾';const bd=hub.querySelector('#pfvBody');if(bd)bd.hidden=!POPEN}
- else if(a==='tema'){DRAFT.t=b.dataset.v;repaint()}
- else if(a==='bgdel'){DRAFT.bg='';repaint()}
- else if(a==='bndel'){DRAFT.bn='';repaint()}
+ else if(a==='tema'){DRAFT.t=b.dataset.v;DIRTY=true;repaint()}
+ else if(a==='bgdel'){DRAFT.bg='';DIRTY=true;repaint()}
+ else if(a==='bndel'){DRAFT.bn='';DIRTY=true;repaint()}
  else if(a==='save')save();
 });
 hub.addEventListener('change',async e=>{
  const id=e.target.id;if(!DRAFT)return;
- if(id==='pfv-tx'){DRAFT.tx=e.target.checked?1:0;repaint();return}
+ if(id==='pfv-tx'){DRAFT.tx=e.target.checked?1:0;DIRTY=true;repaint();return}
  if(id!=='pfv-bg'&&id!=='pfv-bn')return;
  const f=e.target.files&&e.target.files[0];e.target.value='';if(!f)return;
  try{
@@ -4657,7 +4782,7 @@ hub.addEventListener('change',async e=>{
    if(id==='pfv-bn'){DRAFT.bn=await cropCover(im,800,280,.82)}
    else{let u=await fitMax(im,1280,.72);if(u.length>1200000)u=await fitMax(im,960,.6);DRAFT.bg=u}
   }finally{if(im.close)im.close()}
-  repaint();say('Imagem aplicada. Clique em “Salvar aparência do perfil” para guardar.');
+  DIRTY=true;repaint();say('Imagem aplicada. Clique em “Salvar aparência do perfil” para guardar.');
  }catch(err){say(esc(err.message||err),1)}
 });
 
@@ -4675,35 +4800,99 @@ function cloneCss(){
  }
  const e=document.createElement('style');e.textContent=t;document.head.appendChild(e);
 }
-let ov=null;
-function closeOv(){if(ov){ov.hidden=true;ov.innerHTML=''}}
+let ov=null,TOK=0,PUSHED=false;
+function closeOv(fromPop){
+ TOK++;
+ if(ov){ov.hidden=true;ov.innerHTML=''}
+ if(PUSHED){PUSHED=false;if(!fromPop){try{history.back()}catch(e){}}}
+}
+addEventListener('popstate',()=>{if(ov&&!ov.hidden){PUSHED=false;closeOv(true)}});
+const PALs=[['#ff6b7a','#ff9f43'],['#7c3aed','#4c7dff'],['#16a34a','#1ab5b0'],['#f4c430','#ff6b7a'],['#4c7dff','#1ab5b0'],['#9b6bff','#ff78c8'],['#0891b2','#7c3aed'],['#e11d48','#7c3aed']];
+const okImg=v=>typeof v==='string'&&v.length<1500000&&OKI.test(v);
+const hsh=x=>[...String(x)].reduce((a,c)=>a+c.charCodeAt(0),0);
+const icoSvg=k=>{k=/^[a-z0-9]{2,20}$/.test(k||'')&&document.getElementById('ic-'+k)?k:'star';return '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#ic-'+k+'"/></svg>'};
+const fCard=f=>{const img=okImg(f.port)?f.port:'',nm=f.nome||'Sem nome';
+ return '<article class="pfp-card"><div class="pfp-img"'+(img?' style="background-image:url(&quot;'+img+'&quot;)"':'')+'>'+(img?'':esc(nm.trim().charAt(0).toUpperCase()||'?'))+'</div><div class="pfp-info"><b>'+esc(nm)+'</b><span>'+esc(f.cls||'Sem classe')+' · nível '+esc(f.nivel||1)+'</span></div></article>'};
+const cCard=(c,uid)=>{const k=(c.cor!=null&&c.cor!==''&&PALs[+c.cor])?PALs[+c.cor]:PALs[hsh(c.id)%8],img=okImg(c.capa)?c.capa:'';
+ return '<article class="pfp-card camp"><div class="pfp-img" style="--c1:'+k[0]+';--c2:'+k[1]+(img?';background-image:url(&quot;'+img+'&quot;)':'')+'">'+(img?'':icoSvg(c.icone))+'</div><div class="pfp-info"><b>'+esc(c.nome||'Campanha')+'</b><span>'+(String(c.mestre)===String(uid)?'♛ Mestre':'Jogador')+'</span></div></article>'};
+const MAXC=24;
+async function loadStats(uid,tok){
+ const s=sbc();if(!s)return;
+ const live=()=>tok===TOK&&ov&&!ov.hidden;
+ let F=[],C=[],fe='',ce='';
+ const q=sel=>ov.querySelector(sel);
+ try{
+  let r=await s.from('fichas').select('id,nome,campanha_id,cls:data->>cls,nivel:data->>nivel,port:data->>port').eq('owner',uid).order('updated_at',{ascending:false});
+  if(r.error){
+   r=await s.from('fichas').select('id,nome,campanha_id,data').eq('owner',uid);if(r.error)throw r.error;
+   F=(r.data||[]).map(x=>{const d=x.data||{};return{id:x.id,nome:x.nome,cls:d.cls,nivel:d.nivel,port:d.port}});
+  }else F=r.data||[];
+ }catch(e){fe=String(e.message||e)}
+ try{
+  const [m,g]=await Promise.all([s.from('membros').select('campanha_id').eq('user_id',uid),s.from('campanhas').select('id').eq('mestre',uid)]);
+  if(m.error&&g.error)throw m.error;
+  const ids=[...new Set([].concat((m.data||[]).map(x=>String(x.campanha_id)),(g.data||[]).map(x=>String(x.id))))].filter(Boolean);
+  if(ids.length){
+   let r=await s.from('campanhas').select('id,nome,mestre,capa,icone,cor').in('id',ids);
+   if(r.error)r=await s.from('campanhas').select('id,nome,mestre').in('id',ids);
+   if(r.error)throw r.error;C=r.data||[];
+  }
+ }catch(e){ce=String(e.message||e)}
+ if(!live())return;
+ const set=(sel,t)=>{const e=q(sel);if(e)e.textContent=t};
+ set('.pfp-nf',fe?'–':F.length);set('.pfp-nc',ce?'–':C.length);set('.pfp-nm',ce?'–':C.filter(c=>String(c.mestre)===String(uid)).length);
+ const body=(sel,list,fn,err,vazio)=>{const e=q(sel);if(!e)return;
+  e.innerHTML=err?'<p class="pfp-empty">Não foi possível carregar.</p>':list.length?'<div class="pfp-grid">'+list.slice(0,MAXC).map(fn).join('')+'</div>'+(list.length>MAXC?'<p class="pfp-note">e mais '+(list.length-MAXC)+'…</p>':''):'<p class="pfp-empty">'+vazio+'</p>'};
+ body('#pfp-fb',F,fCard,fe,'Nenhuma ficha visível para você.');
+ body('#pfp-cb',C,c=>cCard(c,uid),ce,'Nenhuma campanha visível para você.');
+ set('#pfp-fh',fe?'':'('+F.length+')');set('#pfp-ch',ce?'':'('+C.length+')');
+}
 async function openProfile(uid){
  if(!UID.test(uid))return;
  cloneCss();
  if(!ov){ov=document.createElement('div');ov.id='pfvOv';ov.hidden=true;ov.setAttribute('role','dialog');ov.setAttribute('aria-modal','true');ov.setAttribute('aria-label','Perfil');document.body.appendChild(ov);
-  ov.addEventListener('click',e=>{if(e.target===ov||e.target.closest('.pfv-x'))closeOv()})}
- ov.hidden=false;ov.innerHTML='<div class="pfv-box"><p class="note" style="text-align:center;color:#fff">Carregando perfil…</p></div>';
- const s=sbc();let row=null,err='';
+  ov.addEventListener('click',e=>{
+   if(e.target.closest('[data-pfp-edit]')){closeOv();const g=document.querySelector('[data-go=perfil]');if(g)setTimeout(()=>g.click(),60);return}
+   if(e.target.closest('.pfv-x'))closeOv();
+  })}
+ const tok=++TOK;
+ ov.hidden=false;
+ if(!PUSHED){try{history.pushState({sinPfp:1},'',location.href);PUSHED=true}catch(e){}}
+ ov.innerHTML='<div class="pfv-box pfp"><div class="pfp-top"><button type="button" class="pfv-x">← Voltar</button><b>Perfil</b></div><p class="note" style="text-align:center;padding:30px">Carregando perfil…</p></div>';
+ const s=sbc();let row=null,err='',hint='';
  const src=hub.querySelector('.av[data-u="'+uid+'"]');
  if(s){
   try{const r=await s.from('perfis').select('user_id,nome,foto,icone,cor,visual').eq('user_id',uid).maybeSingle();if(r.error)throw r.error;row=r.data}
-  catch(e){try{const r=await s.from('perfis').select('user_id,nome,foto,icone,cor').eq('user_id',uid).maybeSingle();if(r.error)throw r.error;row=r.data}catch(e2){err=String(e2.message||e2)}}
+  catch(e){if(/visual/i.test(String(e&&e.message||e)))hint='col';try{const r=await s.from('perfis').select('user_id,nome,foto,icone,cor').eq('user_id',uid).maybeSingle();if(r.error)throw r.error;row=r.data}catch(e2){err=String(e2.message||e2)}}
+  if(!row&&!err&&!hint)hint='rls';
  }
- if(ov.hidden)return;
- const v=clean(row&&row.visual);
- const PALs=[['#ff6b7a','#ff9f43'],['#7c3aed','#4c7dff'],['#16a34a','#1ab5b0'],['#f4c430','#ff6b7a'],['#4c7dff','#1ab5b0'],['#9b6bff','#ff78c8'],['#0891b2','#7c3aed'],['#e11d48','#7c3aed']];
- const pc=row&&row.cor!=null&&row.cor!==''&&PALs[+row.cor]?PALs[+row.cor]:PALs[0];
+ const me=await myId();
+ if(tok!==TOK||ov.hidden)return;
+ const isMe=me===uid,v=clean(row&&row.visual),bio=(v.bio||'').trim();
+ const pc=row&&row.cor!=null&&row.cor!==''&&PALs[+row.cor]?PALs[+row.cor]:PALs[hsh(uid)%8];
  const near=src&&src.closest('.pm,.ms,.fc'),nb=near&&near.querySelector('b'),nome=(row&&row.nome)||(nb&&nb.textContent)||'Aventureiro';
  const hex=uid.replace(/[^0-9a-f]/gi,''),code=[...hex.slice(0,30)].map(ch=>'<i style="height:'+(28+parseInt(ch,16)*4)+'%"></i>').join('');
- const hasF=row&&row.foto&&/^data:image\//.test(row.foto),avatarHtml='<div class="av big" style="--a1:'+pc[0]+';--a2:'+pc[1]+(hasF?';background-image:url(&quot;'+row.foto+'&quot;)':'')+'">'+(hasF||!src?'':src.innerHTML)+'</div>';
- ov.innerHTML='<div class="pfv-box"><button type="button" class="pfv-x" aria-label="Fechar perfil">×</button><div class="pfv-stage-w"><aside class="pfx-id" style="--a1:'+pc[0]+';--a2:'+pc[1]+'"><div class="pfx-ban"><span>PASSAPORTE DE AVENTUREIRO</span></div><div class="pfx-av">'+avatarHtml+'</div><h1 class="pfx-name">'+esc(nome)+'</h1><div class="pfx-code" aria-hidden="true">'+code+'</div><div class="pfx-no">Nº '+esc(hex.slice(0,8).toUpperCase())+'</div>'+(row?'':'<p class="pfv-no">Não foi possível ler o perfil completo'+(err?': '+esc(err):'')+'.'+(err?'':'')+'</p>')+'</aside></div></div>';
- const stage=ov.querySelector('.pfv-stage-w'),card=ov.querySelector('.pfx-id');
- stage.dataset.base='border-radius:28px;';
- /* tema e fundo: aplicam-se à caixa inteira */
- const box=ov.querySelector('.pfv-box');box.dataset.base='';
- applyVis(box,card,v);
- if(v.t||v.bg){box.style.padding='14px';box.style.borderRadius='28px';box.style.color='var(--tx)'}
+ const hasF=row&&okImg(row.foto);
+ const avatarHtml='<div class="av big" style="--a1:'+pc[0]+';--a2:'+pc[1]+(hasF?';background-image:url(&quot;'+row.foto+'&quot;)':'')+'">'+(hasF?'':icoSvg(row&&row.icone))+'</div>';
+ const bioHtml=bio?'<p class="pfp-bio">'+esc(bio)+'</p>':'<p class="pfp-empty">'+(isMe?'Você ainda não escreveu sua biografia.':'Este aventureiro ainda não escreveu uma biografia.')+'</p>';
+ ov.innerHTML='<div class="pfv-box pfp"><div class="pfp-top"><button type="button" class="pfv-x">← Voltar</button><b>Perfil</b>'+(isMe?'<button type="button" data-pfp-edit style="margin-left:auto">Editar perfil</button>':'')+'</div>'
+  +'<div class="pfp-wrap" style="--a1:'+pc[0]+';--a2:'+pc[1]+';--c1:'+pc[0]+';--c2:'+pc[1]+'">'
+  +'<div class="pfp-side"><aside class="pfx-id"><div class="pfx-ban"><span>PASSAPORTE DE AVENTUREIRO</span></div><div class="pfx-av">'+avatarHtml+'</div><h1 class="pfx-name">'+esc(nome)+'</h1>'
+  +'<div class="pfx-st"><div><b class="pfp-nf">…</b><span>Fichas</span></div><div><b class="pfp-nc">…</b><span>Campanhas</span></div><div><b class="pfp-nm">…</b><span>Mestre</span></div></div>'
+  +'<div class="pfx-code" aria-hidden="true">'+code+'</div><div class="pfx-no">Nº '+esc(hex.slice(0,8).toUpperCase())+'</div>'
+  +(row?'':'<p class="pfv-no">Não foi possível ler o perfil completo'+(err?': '+esc(err):'')+'.</p>')+(hint==='col'?'<p class="pfv-no">A coluna "visual" não existe no banco, então a aparência e a música não aparecem. No Supabase (SQL Editor) rode:<code>'+esc(SQL)+'</code></p>':hint==='rls'?'<p class="pfv-no">O banco não deixa ler o perfil de outras pessoas, então a aparência e a música não aparecem. No Supabase (SQL Editor) rode:<code>'+esc(SQLP)+'</code></p>':'')+'</aside>'+scPlayer(v.sc)+'</div>'
+  +'<div class="pfp-main">'
+  +'<section class="pfp-sec"><h2>Biografia</h2>'+bioHtml+'</section>'
+  +'<section class="pfp-sec"><h2>Fichas <small id="pfp-fh"></small></h2><div id="pfp-fb"><p class="pfp-empty">Carregando…</p></div></section>'
+  +'<section class="pfp-sec"><h2>Campanhas <small id="pfp-ch"></small></h2><div id="pfp-cb"><p class="pfp-empty">Carregando…</p></div></section>'
+  +(isMe?'':'<p class="pfp-note">As contagens consideram o que sua conta tem permissão de ver.</p>')
+  +'</div></div></div>';
+ const box=ov.querySelector('.pfv-box'),card=ov.querySelector('.pfx-id');
+ box.dataset.base='';
+ applyVis(box,card,v);scMountAll(ov);
  const x=ov.querySelector('.pfv-x');if(x)x.focus();
+ box.scrollTop=0;
+ loadStats(uid,tok);
 }
 document.addEventListener('keydown',e=>{
  if(e.key==='Escape'&&ov&&!ov.hidden){e.stopPropagation();closeOv();return}
@@ -4756,5 +4945,91 @@ const sync=()=>{if(hub.hidden)delete R.dataset.hubopen;else R.dataset.hubopen='1
 new MutationObserver(sync).observe(hub,{attributes:true,attributeFilter:['hidden']});sync();
 })();
 </script>
+<script>
+/* temas desbloqueados: salvos na conta (metadados do login), não só neste navegador */
+(function(){
+if(window.__sinUnlSync)return;window.__sinUnlSync=1;
+const P='sin-unlock',raw=Storage.prototype.setItem;
+const local=()=>{const o=[];try{for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&k.indexOf(P)===0&&localStorage.getItem(k)==='1')o.push(k)}}catch(e){}return o};
+let busy=false,tm=0;
+async function sync(){
+ const sb=window.__sb;if(!sb||busy)return;busy=true;
+ try{
+  const r=await sb.auth.getUser(),u=r&&r.data&&r.data.user;if(!u)return;
+  const md=u.user_metadata||{};
+  const remote=(Array.isArray(md.unlocks)?md.unlocks:[]).filter(k=>typeof k==='string'&&k.indexOf(P)===0);
+  const loc=local(),all=Array.from(new Set(remote.concat(loc)));
+  const miss=remote.filter(k=>loc.indexOf(k)<0);
+  if(all.length>remote.length)await sb.auth.updateUser({data:{unlocks:all}});
+  if(miss.length){
+   miss.forEach(k=>{try{raw.call(localStorage,k,'1')}catch(e){}});
+   const last=+sessionStorage.getItem('sin-unl-rl')||0;
+   if(Date.now()-last>30000){sessionStorage.setItem('sin-unl-rl',Date.now());location.reload()}
+  }
+ }catch(e){}finally{busy=false}
+}
+const later=ms=>{clearTimeout(tm);tm=setTimeout(sync,ms)};
+Storage.prototype.setItem=function(k){
+ const r=raw.apply(this,arguments);
+ if(this===localStorage&&typeof k==='string'&&k.indexOf(P)===0)later(800);
+ return r;
+};
+/* espera o cliente da nuvem existir; depois sincroniza ao entrar e ao voltar para a aba */
+let n=0;const w=setInterval(()=>{
+ if(window.__sb){clearInterval(w);sync();try{window.__sb.auth.onAuthStateChange(()=>later(500))}catch(e){}}
+ else if(++n>60)clearInterval(w);
+},500);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)later(1500)});
+})();
+</script>
+<style id="sin-pfp">
+#pfvOv{display:block!important;padding:0!important;background:#0b0818!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important;overflow:hidden!important}
+#pfvOv[hidden]{display:none!important}
+#pfvOv .pfv-box.pfp{position:absolute;inset:0;width:auto;margin:0;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;color:var(--tx);background:linear-gradient(180deg,#cfe6ff 0%,#eadcff 45%,#ffe4ec 75%,#fff1d6 100%);padding-bottom:40px}
+html[data-tema=escuro] #pfvOv .pfv-box.pfp{background:linear-gradient(180deg,#14122a,#1a1538 50%,#201636)}
+html[data-tema=singular] #pfvOv .pfv-box.pfp{background:#000}
+#pfvOv .pfp-top{position:sticky;top:0;z-index:6;display:flex;align-items:center;gap:10px;padding:10px 14px;padding-top:calc(10px + env(safe-area-inset-top,0px));background:color-mix(in srgb,var(--pn,#fff) 90%,transparent);border-bottom:1px solid var(--ln,#ddd)}
+#pfvOv .pfp-top b{font:800 18px "Bricolage Grotesque",sans-serif}
+#pfvOv .pfp-top .pfv-x{position:static;width:auto;height:auto;padding:6px 14px;border-radius:999px;font-size:15px;line-height:1.3}
+#pfvOv .pfp-wrap{display:grid;grid-template-columns:320px minmax(0,1fr);gap:22px;align-items:start;max-width:1060px;margin:0 auto;padding:18px 16px}
+#pfvOv .pfp-side{position:sticky;top:68px;display:grid;gap:12px;min-width:0}
+#pfvOv .pfp .pfx-id{position:relative!important;top:0!important}
+@media(max-width:820px){#pfvOv .pfp-wrap{grid-template-columns:minmax(0,1fr)}#pfvOv .pfp-side{position:relative;top:0}}
+#pfvOv .pfp-main{display:grid;gap:16px;min-width:0}
+#pfvOv .pfp-sec{background:var(--pn,#fff);border:1px solid var(--ln,#ddd);border-left:6px solid var(--a1,#9b6bff);border-radius:20px 8px 20px 8px;padding:14px 16px;min-width:0}
+#pfvOv .pfp-sec h2{margin:0 0 10px;font:800 20px "Bricolage Grotesque",sans-serif;display:flex;gap:8px;align-items:baseline}
+#pfvOv .pfp-sec h2 small{font:600 14px "Source Sans 3",sans-serif;color:var(--mu,#777)}
+#pfvOv .pfp-bio{margin:0;white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.55}
+#pfvOv .pfp-empty,#pfvOv .pfp-note{margin:0;color:var(--mu,#777);font-size:14px}
+#pfvOv .pfp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:12px}
+#pfvOv .pfp-card{border:1px solid var(--ln,#ddd);border-radius:12px;overflow:hidden;background:var(--pn2,#f4f4f8);min-width:0}
+#pfvOv .pfp-img{aspect-ratio:3/4;display:grid;place-items:center;background:linear-gradient(160deg,var(--c1,#9b6bff),var(--c2,#4c7dff));background-size:cover;background-position:center;background-repeat:no-repeat;font:800 44px "Bricolage Grotesque",sans-serif;color:#fff}
+#pfvOv .pfp-card.camp .pfp-img{aspect-ratio:16/10}
+#pfvOv .pfp-img svg{width:40%;height:40%;fill:#fff}
+#pfvOv .pfp-info{padding:8px 10px}
+#pfvOv .pfp-info b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#pfvOv .pfp-info span{font-size:12.5px;color:var(--mu,#777)}
+.pfx-side{display:grid;gap:12px;min-width:0}
+.scp{position:relative;box-sizing:border-box;width:100%;min-width:0;display:flex;flex-wrap:wrap;align-items:center;gap:8px;min-height:60px;padding:8px 12px;color:var(--tx);
+ background:linear-gradient(90deg,color-mix(in srgb,var(--a1,#ff5500) 16%,var(--pn,#fff)),var(--pn,#fff));
+ border:1px solid var(--ln,#ddd);border-left:5px solid var(--a1,#ff5500);border-radius:16px;box-shadow:0 8px 20px rgba(40,20,100,.16);overflow:hidden}
+.scp button.scp-b{flex:none;display:grid;place-items:center;width:36px;height:36px;padding:0;border-radius:50%;border:0;font-size:14px;line-height:1;color:#fff;background:linear-gradient(135deg,var(--a1,#ff5500),var(--a2,#ff8a3d));box-shadow:0 3px 8px rgba(0,0,0,.22)}
+.scp button.scp-b:hover{filter:brightness(1.1)}
+.scp button.scp-sk{width:28px;height:28px;font-size:11px;color:var(--tx);background:var(--pn2,#f4f4f8);border:1px solid var(--ln,#ddd);box-shadow:none}
+.scp button[hidden]{display:none}
+.scp-m{flex:1 1 0;min-width:0;display:grid;gap:5px}
+.scp-t{display:flex;gap:6px;align-items:baseline;min-width:0;line-height:1.15}
+.scp-ti{flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font:800 14px "Bricolage Grotesque",sans-serif}
+.scp-ar{flex:1 1 0;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;color:var(--mu,#777)}
+.scp-r{display:flex;align-items:center;gap:8px;min-width:0}
+.scp-bar{flex:1 1 0;min-width:0;height:7px;border-radius:99px;cursor:pointer;background:color-mix(in srgb,var(--tx,#222) 16%,transparent);overflow:hidden}
+.scp-bar i{display:block;height:100%;width:0;border-radius:99px;background:linear-gradient(90deg,var(--a1,#ff5500),var(--a2,#ff8a3d))}
+.scp-tm{flex:none;font:600 11px "Source Sans 3",sans-serif;color:var(--mu,#777);font-variant-numeric:tabular-nums}
+.scp .scp-lk{flex:none;font-size:15px;text-decoration:none;color:var(--mu,#777)}
+.scp .scp-lk:hover{color:var(--tx)}
+.scp-f{position:absolute;left:0;top:0;width:1px;height:1px;opacity:0;pointer-events:none;border:0}
+.scp.fb .scp-f{position:static;flex:0 0 100%;width:100%;height:120px;opacity:1;pointer-events:auto;border-radius:10px;margin-top:2px}
+#pfvBio textarea{width:100%;box-sizing:border-box;resize:vertical;min-height:110px}
+</style>
 </body>
 </html>
