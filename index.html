@@ -2030,7 +2030,7 @@ const tb=(k,t,f,g)=>'<button type="button" data-'+k+'="'+f+'" onclick="'+g+'(\''
 const THM='<div class="themes noprint" role="group" aria-label="Tema">'+'<span>Tema:</span>'+tb('tm','Claro','claro','setTema')+tb('tm','Escuro','escuro','setTema')+tb('tm','Singularidade','singular','setTema')+'<span class="sep">Borboletas e raios:</span>'+tb('fb','Na frente','frente','setFx')+tb('fb','Atrás dos blocos','tras','setFx')+tb('fb','Desativar','off','setFx')+'</div>';
 const sec=(t,h,c)=>'<section'+(c?' class="'+c+'"':'')+'><h2>'+t+'</h2>'+h+'</section>';
 const page=(t,sub,body,two,lead,kind,hc,hv)=>BG+'<header'+(kind?' class="hk-'+kind+'"':'')+(hc?' style="'+hc+(hv?';'+hv:'')+'"':'')+'>'+(kind=='camp'?'<div class="cban" aria-hidden="true"></div>':'')+THM+'<div class="hero">'+(lead||EMB)+'<div><h1>'+esc(t)+'</h1><p>'+esc(sub)+'</p></div></div><div class="bar noprint"><button type="button" data-go="fichas">☰ Fichas</button><button type="button" data-go="camps">⚔ Campanhas</button><button type="button" data-go="perfil">☺ Perfil</button><button type="button" data-a="x">✕ Fechar</button></div>'+BFS+'</header><main class="'+(two?'two':'')+(kind?' '+kind:'')+'"'+(hc?' style="'+hc+'"':'')+'>'+body+'</main>';
-const avt=(u,big)=>{u=u||{};const c=pal(u.cor,u.id||u.nome),h=img(u.foto);return '<div class="av'+(big?' big':'')+'" style="--a1:'+c[0]+';--a2:'+c[1]+(h?';background-image:url(&quot;'+u.foto+'&quot;)':'')+'">'+(h?'':ico(u.icone||ICK[hs(u.id||u.nome||'')%ICK.length]))+'</div>'};
+const avt=(u,big)=>{u=u||{};const c=pal(u.cor,u.id||u.nome),h=img(u.foto);return '<div class="av'+(big?' big':'')+'"'+(u.usr?' data-u="'+esc(u.id)+'"':'')+' style="--a1:'+c[0]+';--a2:'+c[1]+(h?';background-image:url(&quot;'+u.foto+'&quot;)':'')+'">'+(h?'':ico(u.icone||ICK[hs(u.id||u.nome||'')%ICK.length]))+'</div>'};
 
 async function render(){
  if(hub.hidden)return;
@@ -2087,7 +2087,7 @@ async function vCamp(id){
  if(rp){const have=new Set(ms.map(x=>x.user_id));rp.forEach(x=>{if(!have.has(x.user_id))ms.push({user_id:x.user_id,nick:x.nick})});ms.sort((a,b)=>(b.user_id==c.mestre)-(a.user_id==c.mestre))}
  const ids=ms.map(x=>x.user_id);
  let pf=[];try{pf=ok(await sb.from('perfis').select('user_id,nome,foto,icone,cor').in('user_id',ids))||[]}catch(e){try{pf=ok(await sb.from('perfis').select('user_id,nome,foto').in('user_id',ids))||[]}catch(e2){}}
- NM={};ms.forEach(x=>{const p=pf.find(q=>q.user_id==x.user_id)||(rp&&rp.find(q=>q.user_id==x.user_id))||{};NM[x.user_id]={id:x.user_id,nome:p.nome||x.nick||'?',foto:p.foto||'',icone:p.icone,cor:p.cor}});
+ NM={};ms.forEach(x=>{const p=pf.find(q=>q.user_id==x.user_id)||(rp&&rp.find(q=>q.user_id==x.user_id))||{};NM[x.user_id]={id:x.user_id,usr:1,nome:p.nome||x.nick||'?',foto:p.foto||'',icone:p.icone,cor:p.cor}});
  if(!CMP||String(CMP.id)!==String(id))APO=false;if(NT.id!=id)NT=nNew(id);CMP={id,m,nome:c.nome};SEEN=new Set();
  AP={capa:c.capa||'',icone:c.icone||ICK[hs(id)%ICK.length],cor:(c.cor!=null&&c.cor!==''&&PAL[+c.cor])?+c.cor:hs(id)%8};PK={obj:AP,paint:paintPrev};
  const cv=cover(AP,id);
@@ -3224,6 +3224,8 @@ const css=`
 @keyframes mvez{0%,100%{box-shadow:0 0 0 max(1px,calc(var(--sz)*.045cqw)) #000,0 0 0 max(2px,calc(var(--sz)*.15cqw)) var(--c),0 0 0 max(3px,calc(var(--sz)*.19cqw)) rgba(255,255,255,.85),0 0 calc(var(--sz)*.3cqw) calc(var(--sz)*.15cqw) color-mix(in srgb,var(--c) 60%,transparent)}50%{box-shadow:0 0 0 max(1px,calc(var(--sz)*.045cqw)) #000,0 0 0 max(3px,calc(var(--sz)*.22cqw)) var(--c),0 0 0 max(4px,calc(var(--sz)*.27cqw)) rgba(255,255,255,.85),0 0 calc(var(--sz)*.52cqw) calc(var(--sz)*.25cqw) var(--c)}}
 @media(prefers-reduced-motion:reduce){#mesaSec .mtk.vez .mb{animation:none;box-shadow:0 0 0 max(1px,calc(var(--sz)*.045cqw)) #000,0 0 0 max(3px,calc(var(--sz)*.18cqw)) var(--c),0 0 0 max(4px,calc(var(--sz)*.23cqw)) rgba(255,255,255,.85)}#mesaSec .mtk{transition:none}}
 #mesaSec .mtk.dead .mb{filter:grayscale(1);opacity:.5}
+#mesaSec .mtk.pin{cursor:not-allowed}
+#mesaSec .mpin{position:absolute;top:-14%;left:-10%;z-index:7;font-size:max(11px,calc(var(--sz)*.34cqw));line-height:1;pointer-events:none;filter:drop-shadow(0 1px 1px rgba(0,0,0,.8))}
 #mesaSec .mtk.dead::after{content:"✕";position:absolute;inset:0;display:grid;place-items:center;font:900 calc(var(--sz)*.9cqw)/1 system-ui,sans-serif;color:#ff3b3b;text-shadow:0 0 3px #000,0 0 3px #000,0 0 6px #000;pointer-events:none}
 #mesaSec .med{margin-top:12px;padding:12px;border:1px solid var(--ln);border-radius:10px;background:rgba(127,127,127,.09);display:grid;gap:12px}
 #mesaSec .med b.t{min-width:62px;font-size:14px}
@@ -3258,7 +3260,7 @@ const lum=h=>{const n=parseInt(h.slice(1),16);return(.299*(n>>16&255)+.587*(n>>8
 const ini=n=>{n=(n||'').trim();if(!n)return'?';const w=n.split(/\s+/),a=Array.from(w[0]);return(w.length>1?a[0]+Array.from(w[1])[0]:a.slice(0,2).join('')).toUpperCase()};
 const uid=()=>Math.random().toString(36).slice(2,8);
 const hasU=(o,id)=>!!o.u&&String(o.u).split(',').includes(id);
-const norm=t=>({i:String(t.i),n:String(t.n||'').slice(0,14),c:/^#[0-9a-f]{6}$/i.test(t.c)?t.c.toLowerCase():'#e11d2e',x:clamp(+t.x||50,0,100),y:clamp(+t.y||50,0,100),s:[0,1,2,3].includes(t.s)?t.s:1,f:[0,1,2].includes(t.f)?t.f:0,t:t.t?1:0,d:t.d?1:0,u:t.u?String(t.u).slice(0,240):undefined,r:(t.r==null||t.r===''||!Number.isFinite(+t.r))?undefined:Math.round(+t.r),ra:(t.ra&&Number.isFinite(+t.ra))?+t.ra:undefined,m:/^[\w-]{1,24}$/.test(t.m||'')?t.m:undefined});
+const norm=t=>({i:String(t.i),n:String(t.n||'').slice(0,14),c:/^#[0-9a-f]{6}$/i.test(t.c)?t.c.toLowerCase():'#e11d2e',x:clamp(+t.x||50,0,100),y:clamp(+t.y||50,0,100),s:[0,1,2,3].includes(t.s)?t.s:1,f:[0,1,2].includes(t.f)?t.f:0,t:t.t?1:0,d:t.d?1:0,u:t.u?String(t.u).slice(0,240):undefined,r:(t.r==null||t.r===''||!Number.isFinite(+t.r))?undefined:Math.round(+t.r),ra:(t.ra&&Number.isFinite(+t.ra))?+t.ra:undefined,m:/^[\w-]{1,24}$/.test(t.m||'')?t.m:undefined,p:t.p?1:undefined});
 const blank=()=>({v:1,ic:0,g:1,sn:1,c:10,l:'',iv:0,k:[]});
 function parse(raw){
  if(raw==null||raw==='')return blank();
@@ -3389,14 +3391,14 @@ document.addEventListener('visibilitychange',()=>{if(!document.hidden&&ST&&ST.op
 /* ---------- desenho ---------- */
 function applyTok(el,t){
  const im=t.m&&ST.img.im[t.m]||'';
- el.className='mtk f'+t.f+(t.t?' vez':'')+(t.d?' dead':'')+(im?' img':'')+(ST.sel===t.i?' sel':'')+(ST.sym&&ST.sym.includes(t.i)?' ssym':'');
+ el.className='mtk f'+t.f+(t.t?' vez':'')+(t.d?' dead':'')+(t.p?' pin':'')+(im?' img':'')+(ST.sel===t.i?' sel':'')+(ST.sym&&ST.sym.includes(t.i)?' ssym':'');
  const dark=lum(t.c)>.6;
  el.style.cssText='--sz:'+szOf(t).toFixed(3)+';--c:'+t.c+';--tc:'+(dark?'#111':'#fff')+';--ts:'+(dark?'0 1px 0 rgba(255,255,255,.55)':'0 1px 2px rgba(0,0,0,.7)')+';left:'+t.x+'%;top:'+t.y+'%';
  el.dataset.i=t.i;
  if(ST.sym&&ST.sym.includes(t.i))el.dataset.sn=ST.sym.indexOf(t.i)+1;else delete el.dataset.sn;
- el.innerHTML='<span class="mb">'+(im?'<span class="mp"></span>':'<span class="mi">'+esc(ini(t.n))+'</span>')+'</span>'+(t.n?'<span class="ml">'+esc(t.n)+'</span>':'');
+ el.innerHTML='<span class="mb">'+(im?'<span class="mp"></span>':'<span class="mi">'+esc(ini(t.n))+'</span>')+'</span>'+(t.n?'<span class="ml">'+esc(t.n)+'</span>':'')+(t.p?'<span class="mpin" aria-hidden="true">📌</span>':'');
  if(im){const mp=el.querySelector('.mp');if(mp)mp.style.backgroundImage='url("'+im+'")'}
- el.setAttribute('aria-label',(t.n||'Ícone')+(t.t?' (vez de jogar)':'')+(t.d?' (derrotado)':''));
+ el.setAttribute('aria-label',(t.n||'Ícone')+(t.t?' (vez de jogar)':'')+(t.d?' (derrotado)':'')+(t.p?' (fixado)':''));
  if(ST.master){el.setAttribute('role','button');el.tabIndex=0}else{el.removeAttribute('role');el.removeAttribute('tabindex')}
 }
 function paintBoard(){
@@ -3415,7 +3417,7 @@ function paintList(){
  const k=ST.d.k,m=ST.master;
  ol.innerHTML=k.length?k.map((t,i)=>{
   const nm=t.n||'Sem nome',im=t.m&&ST.img.im[t.m]||'',
-   lab='<span class="mnum">'+(i+1)+'.</span><i'+(im?' style="background-image:url(\''+im+'\')"':'')+'></i><b>'+esc(nm)+'</b>'+(t.r!=null?'<span class="mrs" title="Iniciativa (Status)" aria-label="Iniciativa '+t.r+'">⚡ '+t.r+'</span>':'')+(t.t?'<span aria-hidden="true">⭐</span>':'')+(t.d?'<span aria-hidden="true">☠</span>':''),
+   lab='<span class="mnum">'+(i+1)+'.</span><i'+(im?' style="background-image:url(\''+im+'\')"':'')+'></i><b>'+esc(nm)+'</b>'+(t.r!=null?'<span class="mrs" title="Iniciativa (Status)" aria-label="Iniciativa '+t.r+'">⚡ '+t.r+'</span>':'')+(t.t?'<span aria-hidden="true">⭐</span>':'')+(t.d?'<span aria-hidden="true">☠</span>':'')+(t.p?'<span aria-hidden="true" title="Fixado">📌</span>':''),
    main=m?'<button type="button" class="mtn" data-m="pick" data-v="'+t.i+'">'+lab+'</button>':'<span class="mtn">'+lab+'</span>',
    ord=m?'<span class="mord noprint"><button type="button" data-m="up" data-v="'+t.i+'" aria-label="Subir '+esc(nm)+'"'+(i?'':' disabled')+'>↑</button><button type="button" data-m="dn" data-v="'+t.i+'" aria-label="Descer '+esc(nm)+'"'+(i<k.length-1?'':' disabled')+'>↓</button></span>':'';
   return'<li class="mti'+(ST.sym&&ST.sym.includes(t.i)?' ssym':'')+(t.t?' vez':'')+(t.d?' dead':'')+(ST.sel===t.i?' sel':'')+'" style="--c:'+t.c+'" data-i="'+t.i+'"'+(t.t?' aria-current="true"':'')+'>'+main+ord+'</li>';
@@ -3436,7 +3438,7 @@ function toolsHtml(){
  +'<button type="button" data-m="inisort" title="Busca a iniciativa rolada nas fichas e ordena do maior para o menor">⚡ Ordenar por iniciativa</button>'
  +'<button type="button" data-m="iniclear" title="Zera as iniciativas da mesa para um novo combate">↺ Zerar iniciativas</button>'
  +'<button type="button" class="mseg" data-m="grid" aria-pressed="true">▦ Grade</button>'
- +'<button type="button" class="mseg" data-m="snap" aria-pressed="true">🧲 Encaixar</button>'
+ +'<button type="button" class="mseg" data-m="pin" aria-pressed="false" disabled title="Selecione um ícone e clique aqui para fixá-lo no mapa: ele não será mais arrastado até você soltar">📌 Fixar ícone</button>'
  +'<label class="mscale" title="Mesa maior = ícones menores, cabe mais coisa">📐 Tamanho da mesa<input type="range" id="mcols" min="0" max="'+(COLSET.length-1)+'" step="1" value="'+ci()+'" aria-label="Tamanho da mesa: quanto maior, menores ficam os ícones"><output id="mcolsv" for="mcols">'+dimTxt()+'</output></label>'
  +'<button type="button" data-m="bg">🖼 Fundo da mesa</button><button type="button" data-m="bgdel"'+(ST.img.bg?'':' disabled')+'>Remover fundo</button>'
  +'<input type="file" id="mbgf" class="mfile" accept="image/*" aria-label="Imagem de fundo da mesa">'
@@ -3444,14 +3446,21 @@ function toolsHtml(){
 }
 function syncTools(){
  if(!ST.master||!sec)return;
- const g=sec.querySelector('[data-m=grid]'),s=sec.querySelector('[data-m=snap]');
- if(g)g.setAttribute('aria-pressed',!!ST.d.g);if(s)s.setAttribute('aria-pressed',!!ST.d.sn);
+ const g=sec.querySelector('[data-m=grid]');syncPin();
+ if(g)g.setAttribute('aria-pressed',!!ST.d.g);
  const r=sec.querySelector('#mcols'),o=sec.querySelector('#mcolsv');if(r&&+r.value!==ci())r.value=ci();if(o)o.textContent=dimTxt();
  const bd=sec.querySelector('[data-m=bgdel]');if(bd)bd.disabled=!ST.img.bg;
+}
+function syncPin(){
+ const b=sec&&sec.querySelector('[data-m=pin]');if(!b)return;
+ const t=ST.sel&&tokOf(ST.sel);
+ b.disabled=!t;b.setAttribute('aria-pressed',!!(t&&t.p));
+ b.textContent=(t&&t.p)?'📌 Fixado (soltar)':'📌 Fixar ícone';
 }
 function buildEditor(){
  const box=sec&&sec.querySelector('.medw');if(!box||!ST.master)return;
  const t=ST.sel&&tokOf(ST.sel);
+ syncPin();
  if(!t){box.innerHTML='<p class="note">Toque num ícone para trocar a cor, o nome e o tamanho. Arraste para mover.</p>';return}
  box.innerHTML='<div class="med noprint">'
  +'<div class="mg"><label class="mnm">Nome<input id="mnome" maxlength="14" autocomplete="off" value="'+esc(t.n)+'"></label><label class="mnm" style="flex:0 1 150px">Iniciativa'+(t.u?' (da ficha)':'')+'<input id="mini" type="number" inputmode="numeric" step="1" placeholder="—" value="'+(t.r==null?'':t.r)+'"></label></div>'
@@ -3650,7 +3659,7 @@ async function iniPull(force){
 }
 setInterval(()=>{if(ST&&ST.master&&ST.open&&ST.loaded&&sec&&sec.isConnected&&!document.hidden&&!hub.hidden&&!ST.sym&&!drag)iniPull()},4000);
 
-function move(t,dx,dy){const[x,y]=fit(t,t.x+dx,t.y+dy);t.x=x;t.y=y;refresh(t);queue()}
+function move(t,dx,dy){if(t.p){ST.stat='Ícone fixado: solte-o para mover';setStat();return}const[x,y]=fit(t,t.x+dx,t.y+dy);t.x=x;t.y=y;refresh(t);queue()}
 function onClick(e){
  const b=e.target.closest('[data-m]');if(!b||!sec.contains(b))return;
  const a=b.dataset.m,t=ST.sel&&tokOf(ST.sel);
@@ -3678,7 +3687,7 @@ function onClick(e){
   const nb=sec.querySelector('.mti[data-i="'+b.dataset.v+'"] [data-m="'+a+'"]');if(nb&&!nb.disabled)nb.focus();
  }
  else if(a==='grid'){ST.d.g=ST.d.g?0:1;paintBoard();queue()}
- else if(a==='snap'){ST.d.sn=ST.d.sn?0:1;syncTools();queue()}
+ else if(a==='pin'){if(!t)return;t.p=t.p?0:1;refresh(t);syncPin();ST.stat=t.p?'Ícone fixado no mapa':'Ícone solto';setStat();queue()}
  else if(a==='clear'){if(!ST.d.k.length||!confirm('Remover todos os ícones da mesa?'))return;ST.d.k=[];ST.d.l='';ST.sel=null;paintBoard();buildEditor();queue()}
  else if(a==='sym'){if(ST.sym)symCancel();else symStart()}
  else if(a==='symno')symCancel();
@@ -3693,7 +3702,7 @@ function onClick(e){
  else if(a==='dead'){t.d=t.d?0:1;if(t.d)t.t=0;refresh(t);syncEditor();queue()}
  else if(a==='dup'){
   if(ST.d.k.length>=MAXT)return;
-  const c=norm(Object.assign({},t,{i:uid(),u:undefined,t:0,n:t.n.replace(/\s*\d+$/,'')+' '+(ST.d.k.length+1)}));
+  const c=norm(Object.assign({},t,{i:uid(),u:undefined,p:undefined,t:0,n:t.n.replace(/\s*\d+$/,'')+' '+(ST.d.k.length+1)}));
   c.n=c.n.slice(0,14);[c.x,c.y]=freeSpot(c);ST.d.k.push(c);ST.sel=c.i;paintBoard();buildEditor();queue();
  }
  else if(a==='img'){const f=sec.querySelector('#mimgf');if(f)f.click()}
@@ -3745,6 +3754,7 @@ function onDown(e){
  if(!el){select(null);return}
  const t=tokOf(el.dataset.i);if(!t)return;
  select(t.i);
+ if(t.p){ST.stat='Ícone fixado: solte-o para mover';setStat();return}
  drag={t,el,pid:e.pointerId,sx:e.clientX,sy:e.clientY,moved:false};
  try{board.setPointerCapture(e.pointerId)}catch(_){}
  el.classList.add('drag');e.preventDefault();
@@ -4222,5 +4232,387 @@ try{if(localStorage.getItem('sin-tema3')==='moranguetes'&&UN)ap()}catch(e){}
 #hub .pfx-f::before{content:"";flex:none;width:10px;height:10px;border-radius:50%;background:linear-gradient(135deg,var(--a1),var(--a2))}
 #hub .pfx-f span{flex:1;min-width:0}#hub .pfx-f em{display:block;font-style:normal;font-size:12px;color:var(--mu)}
 </style>
+<script>
+/* ===== Seletor de temas em grade (cole por último, depois de todos os scripts de tema) ===== */
+(function(){
+if(window.__sinThGrid)return;window.__sinThGrid=1;
+const pop=document.querySelector('.thpop');
+if(!pop)return;
+const css=`
+.thpop{width:min(94vw,500px);box-sizing:border-box;padding:12px;border-radius:16px;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin}
+.thpop:not([hidden]){display:grid;grid-template-columns:repeat(auto-fill,minmax(98px,1fr));gap:10px;align-content:start}
+.thpop .thh{grid-column:1/-1;display:flex;align-items:center;gap:8px;position:sticky;top:-12px;z-index:2;margin:-12px -12px 0;padding:12px 12px 8px;background:var(--pn2);border-radius:16px 16px 0 0}
+.thpop .thh b{font-size:15px;white-space:nowrap}
+.thpop .thq{flex:1;min-width:0;padding:6px 10px;border-radius:999px;font-size:14px}
+.thpop .thn0{grid-column:1/-1;text-align:center;color:var(--mu);font-size:14px;padding:14px 0}
+.thpop .thn0[hidden]{display:none}
+.thpop .thi{position:relative;flex-direction:column;align-items:stretch;gap:7px;width:auto;margin:0;padding:6px 6px 8px;border:2px solid var(--ln);border-radius:12px;text-align:center;text-decoration:none!important;font-size:13px;line-height:1.15;cursor:pointer;transition:transform .12s,border-color .12s}
+.thpop .thi:hover,.thpop .thi:focus-visible{transform:translateY(-2px);border-color:var(--ac);outline:none}
+.thpop .thi .sw{display:block;width:100%;height:58px;border-radius:8px;box-shadow:inset 0 0 0 1px rgba(255,255,255,.15),inset 0 -14px 18px rgba(0,0,0,.18)}
+.thpop .thi span{display:block;overflow-wrap:anywhere}
+.thpop .thi em{position:absolute;top:10px;right:10px;margin:0;width:22px;height:22px;display:grid;place-items:center;border-radius:50%;background:var(--ac);color:#000;font-size:13px;box-shadow:0 1px 4px rgba(0,0,0,.5)}
+.thpop .thi[aria-checked=true]{border-color:var(--ac);outline:2px solid var(--ac);outline-offset:1px;font-weight:700;text-decoration:none}
+.thpop .thi.lock span::after{content:none}
+.thpop .thi.lock .sw{position:relative}
+.thpop .thi.lock .sw::after{content:"🔒";position:absolute;inset:0;display:grid;place-items:center;font-size:22px;background:rgba(0,0,0,.35);border-radius:8px}
+.thpop .thi.thx{display:none!important}
+@media(max-width:420px){.thpop{padding:10px}.thpop:not([hidden]){gap:8px;grid-template-columns:repeat(auto-fill,minmax(92px,1fr))}.thpop .thi .sw{height:50px}}
+`;
+const st=document.createElement('style');st.textContent=css;document.head.appendChild(st);
+
+/* cabeçalho com busca */
+const head=document.createElement('div');head.className='thh';
+head.innerHTML='<b>Escolher tema</b><input class="thq" type="search" placeholder="Buscar tema…" aria-label="Buscar tema" autocomplete="off">';
+pop.insertBefore(head,pop.firstChild);
+const none=document.createElement('div');none.className='thn0';none.hidden=true;none.textContent='Nenhum tema encontrado.';
+pop.appendChild(none);
+const q=head.querySelector('.thq');
+const norm=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+function filtrar(){
+ const v=norm(q.value.trim());let vis=0;
+ pop.querySelectorAll('.thi').forEach(b=>{
+  const ok=!v||norm(b.textContent).includes(v);
+  b.classList.toggle('thx',!ok);
+  if(ok&&getComputedStyle(b).display!=='none')vis++;
+ });
+ none.hidden=vis>0;
+}
+q.addEventListener('input',filtrar);
+
+/* ao abrir: limpa a busca e ajusta a altura para caber na tela */
+new MutationObserver(()=>{
+ if(pop.hidden)return;
+ if(q.value){q.value='';filtrar()}
+ const top=parseFloat(pop.style.top)||0;
+ pop.style.maxHeight=Math.max(220,innerHeight-top-12)+'px';
+ const cur=pop.querySelector('.thi[aria-checked=true]');
+ if(cur)requestAnimationFrame(()=>cur.scrollIntoView({block:'nearest'}));
+}).observe(pop,{attributes:true,attributeFilter:['hidden']});
+
+/* setas navegam pela grade */
+pop.addEventListener('keydown',e=>{
+ const k=e.key;
+ if(!['ArrowDown','ArrowUp','ArrowLeft','ArrowRight'].includes(k))return;
+ const inQ=e.target===q;
+ if(inQ&&(k==='ArrowLeft'||k==='ArrowRight'))return;
+ const it=[...pop.querySelectorAll('.thi')].filter(b=>b.offsetParent!==null);
+ if(!it.length)return;
+ e.preventDefault();e.stopPropagation();
+ const cols=Math.max(1,getComputedStyle(pop).gridTemplateColumns.split(' ').length);
+ let i=it.indexOf(document.activeElement);
+ if(inQ){if(k==='ArrowDown')it[0].focus();return}
+ if(i<0){it[0].focus();return}
+ if(k==='ArrowRight')i=Math.min(it.length-1,i+1);
+ else if(k==='ArrowLeft')i=Math.max(0,i-1);
+ else if(k==='ArrowDown')i=Math.min(it.length-1,i+cols);
+ else{if(i-cols<0){q.focus();return}i-=cols}
+ it[i].focus();
+},true);
+})();
+</script>
+<script>
+/* ===== Perfil: ver o perfil dos outros + personalizar (tema, fundo, imagem do passaporte) =====
+   Cole por último, depois de todos os outros scripts.
+   Precisa de UMA coluna nova no Supabase (SQL Editor):
+     alter table public.perfis add column if not exists visual text;
+   Para qualquer pessoa ver o perfil de qualquer outra (opcional, se ainda não ver):
+     create policy "perfis_leitura_logados" on public.perfis for select to authenticated using (true);  */
+(function(){
+if(window.__sinPerfilX)return;window.__sinPerfilX=1;
+const hub=document.getElementById('hub');if(!hub)return;
+const SQL='alter table public.perfis add column if not exists visual text;';
+const SQLP='create policy "perfis_leitura_logados" on public.perfis for select to authenticated using (true);';
+const R=document.documentElement;
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const OKI=/^data:image\/(?:jpeg|png|webp);base64,[A-Za-z0-9+\/=]+$/;
+const UID=/^[\w-]{8,64}$/;
+const sbc=()=>window.__sb;
+
+/* ---------- CSS ---------- */
+const css=`
+#hub .av[data-u]{cursor:pointer}
+#hub .av[data-u]:hover{filter:brightness(1.1);box-shadow:0 0 0 3px var(--ac)}
+#hub .av[data-u]:focus-visible{outline:3px solid var(--ac);outline-offset:2px}
+#hub .pfx.pfv-stage{padding:16px;border-radius:28px;color:var(--tx);background-size:cover;background-position:center;background-repeat:no-repeat}
+#hub .pfx-ban{background-size:cover!important;background-position:center!important}
+.pfv-img .pfx-ban::after{display:none}
+.pfv-img:not(.pfv-txt) .pfx-ban span{display:none}
+.pfv-img .pfx-ban span{text-shadow:0 1px 6px rgba(0,0,0,.8)}
+#pfvSec{--c1:var(--a1,var(--sg))}
+#pfvSec .apt{width:100%;display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 16px;border-radius:14px;font:800 16px "Bricolage Grotesque",sans-serif;background:linear-gradient(90deg,color-mix(in srgb,var(--c1) 22%,var(--pn2)),var(--pn2))}
+#pfvSec .apt i{font:600 13px "Source Sans 3",sans-serif;font-style:normal;color:var(--mu)}
+#pfvSec .apt[aria-expanded=true]{border-color:var(--c1)}
+#pfvSec #pfvBody{margin-top:14px}#pfvSec #pfvBody[hidden]{display:none}
+#pfvId{--c1:var(--a1,var(--sg))}
+#pfvId .apt{width:100%;display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 16px;border-radius:14px;font:800 16px "Bricolage Grotesque",sans-serif;background:linear-gradient(90deg,color-mix(in srgb,var(--c1) 22%,var(--pn2)),var(--pn2))}
+#pfvId .apt i{font:600 13px "Source Sans 3",sans-serif;font-style:normal;color:var(--mu)}
+#pfvId .apt[aria-expanded=true]{border-color:var(--c1)}
+#pfvId #pfvIdBody{margin-top:14px}#pfvId #pfvIdBody[hidden]{display:none}
+#pfvSec .pfv-g{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:8px;margin:6px 0 12px}
+#pfvSec .pfv-t{display:flex;flex-direction:column;gap:5px;padding:5px 5px 7px;border:2px solid var(--ln);border-radius:12px;font-size:12.5px;line-height:1.15;text-align:center;cursor:pointer}
+#pfvSec .pfv-t i{display:block;height:40px;border-radius:7px;box-shadow:inset 0 0 0 1px rgba(255,255,255,.18)}
+#pfvSec .pfv-t[aria-pressed=true]{border-color:var(--ac);outline:2px solid var(--ac);outline-offset:1px;font-weight:700}
+#pfvSec .pfv-r{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:6px 0}
+#pfvSec .pfv-r label{flex:1 1 220px}
+#pfvSec .pfv-ck{flex-direction:row;align-items:center;gap:8px;font-size:14px;margin:6px 0}
+#pfvSec .pfv-ck input{width:auto}
+#pfvSec code{display:block;margin:6px 0;padding:8px;border-radius:8px;background:rgba(0,0,0,.35);color:#fff;font-size:13px;overflow-wrap:anywhere;user-select:all}
+#pfvSec .pfv-m{margin:8px 0 0}
+#pfvOv{position:fixed;inset:0;z-index:150;display:grid;place-items:center;padding:14px;background:rgba(8,6,20,.62);backdrop-filter:blur(4px);overflow:auto}
+#pfvOv[hidden]{display:none}
+#pfvOv .pfv-box{position:relative;width:min(94vw,380px);margin:auto}
+#pfvOv .pfx-id{position:relative!important;top:0!important;color:var(--tx)}
+#pfvOv .pfv-x{position:absolute;top:8px;right:8px;z-index:5;width:34px;height:34px;padding:0;border-radius:50%;font-size:20px;line-height:1}
+#pfvOv .pfv-no{margin:10px 16px 0;font-size:13px;color:var(--mu)}
+@media print{#pfvOv{display:none!important}}
+`;
+const st=document.createElement('style');st.textContent=css;document.head.appendChild(st);
+
+/* ---------- tema: recria TODAS as regras do tema dentro do perfil ----------
+   Em vez de copiar só as cores, reescreve cada regra "html[data-tema=X] ..." do site
+   para valer apenas dentro do perfil (cartões, títulos, botões, fontes, bordas, brilhos). */
+const DONE={};
+const splitTop=t=>{const o=[];let d=0,c='',q='';for(const ch of t){if(q){c+=ch;if(ch===q)q='';continue}if(ch==='"'||ch==="'"){q=ch;c+=ch;continue}if(ch==='('||ch==='[')d++;if(ch===')'||ch===']')d--;if(ch===','&&!d){o.push(c);c=''}else c+=ch}o.push(c);return o.map(x=>x.trim()).filter(Boolean)};
+const SKIP=/^(header\s|\.hero|\.emblem|\.em-|\.bg\b|\.bf\b|\.lt\b|\.rain|\.cmx|#mfx|\.thpop|\.thbtn|\.themes|#menu|\.nb\b|\.mc\b|\.mgrid|\.sintoast|\.aph|\.ide|\.tip|\.d20|\.cmv|\.cmb|#nui|\.ctile|\.ch\b|\.ci\b|\.cpanel|\.wbox|\.star|\.mo\b|\.mod\b|\.pkb|\.pkc|\.nm\b)/;
+const BANP=['background','background-image','background-color','background-size','background-position','background-repeat'];
+function ensureTheme(name){
+ if(!name||DONE[name])return;DONE[name]=1;
+ const P=':is(#hub .pfx,#pfvOv .pfv-box)[data-pt="'+name+'"]';
+ const tok=new RegExp('^html\\[data-tema=("?)'+name.replace(/[^\w-]/g,'')+'\\1\\]');
+ let out='';
+ const walk=(rules,wrap)=>{
+  for(const r of rules){
+   if(r.cssRules&&r.conditionText!==undefined&&!r.selectorText){ /* @media / @supports */
+    if(/print/i.test(r.conditionText))continue;
+    const before=out;out='';walk(r.cssRules,wrap);const inner=out;out=before;
+    if(inner)out+='@'+(r.constructor.name==='CSSSupportsRule'?'supports':'media')+' '+r.conditionText+'{'+inner+'}\n';
+    continue;
+   }
+   if(!r.selectorText||!r.style)continue;
+   const sel=[],ban=[];
+   for(const part of splitTop(r.selectorText)){
+    let m,rest;
+    if(name==='claro'){if(part===':root'){sel.push(P);continue}else continue}
+    m=part.match(tok);if(!m)continue;
+    rest=part.slice(m[0].length);
+    if(rest&&!/^\s/.test(rest))continue;
+    rest=rest.trim();
+    if(rest===''){sel.push(P);continue}
+    if(rest==='body'){sel.push(P);continue}
+    if(/^body\b/.test(rest))continue;
+    if(rest==='header'){ban.push(P+' .pfx-ban');continue}
+    if(/^main\s*>\s*section/.test(rest)){sel.push(P+' '+rest.replace(/^main\s*>\s*/,''));continue}
+    if(SKIP.test(rest))continue;
+    sel.push(P+' '+rest);
+   }
+   if(sel.length&&r.style.cssText)out+=sel.join(',')+'{'+r.style.cssText+'}\n';
+   if(ban.length){let t='';BANP.forEach(k=>{const v=r.style.getPropertyValue(k);if(v)t+=k+':'+v+';'});if(t)out+=ban.join(',')+'{'+t+'}\n'}
+  }
+ };
+ for(const sh of document.styleSheets){
+  if(sh.ownerNode&&sh.ownerNode.id&&/^pfvT-/.test(sh.ownerNode.id))continue;
+  let rules;try{rules=sh.cssRules}catch(e){continue}
+  walk(rules);
+ }
+ const e=document.createElement('style');e.id='pfvT-'+name;e.textContent=out;document.head.appendChild(e);
+}
+const known=()=>[...document.querySelectorAll('.thpop .thi[data-t]')].map(b=>({k:b.dataset.t,n:(b.querySelector('span')||b).textContent.replace(/\s*🔒\s*$/,'').trim(),sw:(b.querySelector('.sw')||{style:{}}).style.background||'',lock:b.classList.contains('lock')||getComputedStyle(b).display==='none'}));
+
+/* ---------- dados do visual ---------- */
+const VIS={};            /* cache por usuário */
+let DRAFT=null,MY=null,POPEN=false,IOPEN=false;   /* rascunho editável do meu perfil / bloco aberto? */
+function clean(o){
+ if(typeof o==='string'){try{o=JSON.parse(o)}catch(e){o=null}}
+ if(!o||typeof o!=='object')return{t:'',bg:'',bn:'',tx:0};
+ const t=/^[a-z0-9_-]{1,30}$/.test(o.t||'')?o.t:'';
+ return{t,bg:(typeof o.bg==='string'&&o.bg.length<1500000&&OKI.test(o.bg))?o.bg:'',bn:(typeof o.bn==='string'&&o.bn.length<600000&&OKI.test(o.bn))?o.bn:'',tx:o.tx?1:0};
+}
+async function myId(){if(MY)return MY;const s=sbc();if(!s)return null;try{const r=await s.auth.getSession();MY=r.data&&r.data.session&&r.data.session.user.id||null}catch(e){}return MY}
+async function loadVis(id){
+ const s=sbc();if(!s)return clean(null);
+ try{
+  const r=await s.from('perfis').select('visual').eq('user_id',id).maybeSingle();
+  if(!r.error)return clean(r.data&&r.data.visual);
+ }catch(e){}
+ try{const l=localStorage.getItem('sin-pvis-'+id);if(l)return clean(l)}catch(e){}
+ return clean(null);
+}
+
+/* ---------- aplicar o visual ---------- */
+function applyVis(stage,card,v){
+ if(!stage)return;
+ if(v.t)ensureTheme(v.t);
+ if(v.t)stage.dataset.pt=v.t;else delete stage.dataset.pt;
+ stage.classList.toggle('pfv-stage',!!(v.t||v.bg));
+ stage.style.cssText=(stage.dataset.base||'')+(v.t?'background-attachment:scroll;':'');
+ if(v.bg){stage.style.backgroundImage='url("'+v.bg+'")';stage.style.backgroundSize='cover';stage.style.backgroundPosition='center';stage.style.backgroundRepeat='no-repeat'}
+ if(card){
+  const ban=card.querySelector('.pfx-ban');
+  card.classList.toggle('pfv-img',!!v.bn);card.classList.toggle('pfv-txt',!!v.tx);
+  if(ban){ban.style.backgroundImage=v.bn?'url("'+v.bn+'")':'';if(v.bn){ban.style.backgroundSize='cover';ban.style.backgroundPosition='center'}else{ban.style.backgroundSize='';ban.style.backgroundPosition=''}}
+ }
+}
+
+/* ---------- redimensionar imagens ---------- */
+function loadImage(f){return new Promise((ok,no)=>{if(!f||!/^image\//.test(f.type))return no(new Error('Escolha um arquivo de imagem.'));const r=new FileReader();r.onload=()=>{const i=new Image();i.onload=()=>ok(i);i.onerror=()=>no(new Error('Não foi possível ler essa imagem.'));i.src=r.result};r.onerror=()=>no(new Error('Não foi possível ler o arquivo.'));r.readAsDataURL(f)})}
+function cropCover(im,w,h,q){const cv=document.createElement('canvas');cv.width=w;cv.height=h;const g=cv.getContext('2d');g.fillStyle='#000';g.fillRect(0,0,w,h);const k=Math.max(w/im.width,h/im.height),dw=im.width*k,dh=im.height*k;g.drawImage(im,(w-dw)/2,(h-dh)/2,dw,dh);return cv.toDataURL('image/jpeg',q)}
+function fitMax(im,M,q){const k=Math.min(1,M/Math.max(im.width,im.height)),cv=document.createElement('canvas');cv.width=Math.max(1,Math.round(im.width*k));cv.height=Math.max(1,Math.round(im.height*k));const g=cv.getContext('2d');g.fillStyle='#000';g.fillRect(0,0,cv.width,cv.height);g.drawImage(im,0,0,cv.width,cv.height);return cv.toDataURL('image/jpeg',q)}
+
+/* ---------- seção "Personalizar perfil" (no meu perfil) ---------- */
+async function injectMine(){
+ const root=hub.querySelector('.mw.pfx'),main=hub.querySelector('.pfx-main');
+ if(!root||!main)return;
+ if(!root.dataset.base&&root.dataset.base!=='')root.dataset.base=root.getAttribute('style')||'';
+ const card=root.querySelector('.pfx-id');
+ const id=await myId();if(!id)return;
+ if(!DRAFT)DRAFT=Object.assign({},VIS[id]||(VIS[id]=await loadVis(id)));
+ if(!hub.contains(root))return;
+ if(!main.querySelector('#pfvSec')){
+  const sec=document.createElement('section');sec.id='pfvSec';
+  const T=known().filter(x=>!x.lock);
+  sec.className='s-ap';
+  sec.innerHTML='<button type="button" class="apt" data-pv="tog" aria-expanded="'+POPEN+'" aria-controls="pfvBody"><span>🎨 Personalizar perfil</span><i>'+(POPEN?'Fechar ▴':'Abrir ▾')+'</i></button>'
+   +'<div id="pfvBody"'+(POPEN?'':' hidden')+'>'
+   +'<div class="lb">Tema do perfil</div><div class="pfv-g" role="group" aria-label="Tema do perfil"><button type="button" class="pfv-t" data-pv="tema" data-v="" aria-pressed="false"><i style="background:linear-gradient(135deg,var(--pn2),var(--ln))"></i>Padrão</button>'
+   +T.map(x=>'<button type="button" class="pfv-t" data-pv="tema" data-v="'+esc(x.k)+'" aria-pressed="false"><i style="background:'+esc(x.sw)+'"></i>'+esc(x.n)+'</button>').join('')+'</div>'
+   +'<div class="pfv-r"><label>Imagem de plano de fundo<input id="pfv-bg" type="file" accept="image/*"></label><button type="button" data-pv="bgdel">Remover fundo</button></div>'
+   +'<div class="pfv-r"><label>Imagem do passaporte (no lugar do texto “Passaporte de aventureiro”)<input id="pfv-bn" type="file" accept="image/*"></label><button type="button" data-pv="bndel">Remover imagem</button></div>'
+   +'<label class="pfv-ck"><input type="checkbox" id="pfv-tx"> Mostrar o texto “Passaporte de aventureiro” sobre a imagem</label>'
+   +'<div class="pfv-r"><button type="button" data-pv="save">Salvar aparência do perfil</button></div>'
+   +'<p class="note pfv-m" id="pfv-msg" aria-live="polite">As imagens são reduzidas automaticamente. Todos que abrirem seu perfil verão essa aparência.</p></div>';
+  main.insertBefore(sec,main.firstChild);
+ }
+ foldId(main);
+ syncUi();
+ applyVis(root,card,DRAFT);
+}
+/* "Identidade" vira um bloco que abre e fecha (os campos continuam no HTML, só escondidos) */
+function foldId(main){
+ if(main.querySelector('#pfvId'))return;
+ const sec=[...main.children].find(x=>x.tagName==='SECTION'&&x.id!=='pfvSec'&&(x.querySelector('h2')||{}).textContent==='Identidade');
+ if(!sec)return;
+ const h=sec.querySelector('h2'),body=document.createElement('div');
+ body.id='pfvIdBody';body.hidden=!IOPEN;
+ while(h.nextSibling)body.appendChild(h.nextSibling);
+ const bt=document.createElement('button');bt.type='button';bt.className='apt';bt.dataset.pv='togid';bt.setAttribute('aria-expanded',IOPEN);bt.setAttribute('aria-controls','pfvIdBody');
+ bt.innerHTML='<span>🪪 Identidade</span><i>'+(IOPEN?'Fechar ▴':'Abrir ▾')+'</i>';
+ h.replaceWith(bt);sec.appendChild(body);sec.id='pfvId';
+}
+function syncUi(){
+ const sec=hub.querySelector('#pfvSec');if(!sec||!DRAFT)return;
+ sec.querySelectorAll('[data-pv=tema]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===DRAFT.t));
+ const c=sec.querySelector('#pfv-tx');if(c)c.checked=!!DRAFT.tx;
+}
+const say=(h,bad)=>{const m=hub.querySelector('#pfv-msg');if(m){m.className='note pfv-m'+(bad?' bad':'');m.innerHTML=h}};
+function repaint(){const root=hub.querySelector('.mw.pfx');if(root)applyVis(root,root.querySelector('.pfx-id'),DRAFT);syncUi()}
+
+async function save(){
+ const s=sbc(),id=await myId();if(!s||!id)return say('Entre na sua conta para salvar.',1);
+ const json=JSON.stringify(DRAFT);
+ try{localStorage.setItem('sin-pvis-'+id,json)}catch(e){}
+ say('Salvando…');
+ try{
+  let r=await s.from('perfis').update({visual:json}).eq('user_id',id).select('user_id');
+  if(r.error)throw r.error;
+  if(!r.data||!r.data.length){
+   const nm=(hub.querySelector('#pn-nome')||{value:''}).value.trim().slice(0,30);
+   r=await s.from('perfis').upsert({user_id:id,nome:nm,visual:json});if(r.error)throw r.error;
+  }
+  VIS[id]=clean(json);say('Aparência salva ✓');
+ }catch(e){
+  const t=String(e.message||e);
+  if(/visual/i.test(t))say('Não salvou na nuvem: falta a coluna no banco. No Supabase, abra o SQL Editor e rode:<code>'+esc(SQL)+'</code>Por enquanto a aparência só aparece neste aparelho.',1);
+  else say('Não salvou: '+esc(t),1);
+ }
+}
+
+/* ---------- ações da seção ---------- */
+hub.addEventListener('click',async e=>{
+ const b=e.target.closest('[data-pv]');if(!b||!DRAFT)return;
+ const a=b.dataset.pv;
+ if(a==='togid'){IOPEN=!IOPEN;b.setAttribute('aria-expanded',IOPEN);const i_=b.querySelector('i');if(i_)i_.textContent=IOPEN?'Fechar ▴':'Abrir ▾';const bd=hub.querySelector('#pfvIdBody');if(bd)bd.hidden=!IOPEN}
+ else if(a==='tog'){POPEN=!POPEN;b.setAttribute('aria-expanded',POPEN);const i_=b.querySelector('i');if(i_)i_.textContent=POPEN?'Fechar ▴':'Abrir ▾';const bd=hub.querySelector('#pfvBody');if(bd)bd.hidden=!POPEN}
+ else if(a==='tema'){DRAFT.t=b.dataset.v;repaint()}
+ else if(a==='bgdel'){DRAFT.bg='';repaint()}
+ else if(a==='bndel'){DRAFT.bn='';repaint()}
+ else if(a==='save')save();
+});
+hub.addEventListener('change',async e=>{
+ const id=e.target.id;if(!DRAFT)return;
+ if(id==='pfv-tx'){DRAFT.tx=e.target.checked?1:0;repaint();return}
+ if(id!=='pfv-bg'&&id!=='pfv-bn')return;
+ const f=e.target.files&&e.target.files[0];e.target.value='';if(!f)return;
+ try{
+  say('Processando imagem…');
+  const im=await loadImage(f);
+  if(id==='pfv-bn'){DRAFT.bn=cropCover(im,800,280,.82)}
+  else{let u=fitMax(im,1280,.72);if(u.length>1200000)u=fitMax(im,960,.6);DRAFT.bg=u}
+  repaint();say('Imagem aplicada. Clique em “Salvar aparência do perfil” para guardar.');
+ }catch(err){say(esc(err.message||err),1)}
+});
+
+/* ---------- ver o perfil de outra pessoa ---------- */
+/* o cartão do passaporte é estilizado por regras "#hub .pfx…": copiamos para a janela */
+let CLONED=0;
+function cloneCss(){
+ if(CLONED)return;CLONED=1;let t='';
+ for(const sh of document.styleSheets){
+  let rules;try{rules=sh.cssRules}catch(e){continue}
+  for(const r of rules){
+   if(!r.selectorText||!/#hub \.(pfx|av)/.test(r.selectorText)||/pfx-(grid|main|fl|f\b|sw)|pfx\.pfv|pfx\{/.test(r.selectorText))continue;
+   t+=r.cssText.replace(/#hub /g,'#pfvOv ')+'\n';
+  }
+ }
+ const e=document.createElement('style');e.textContent=t;document.head.appendChild(e);
+}
+let ov=null;
+function closeOv(){if(ov){ov.hidden=true;ov.innerHTML=''}}
+async function openProfile(uid){
+ if(!UID.test(uid))return;
+ cloneCss();
+ if(!ov){ov=document.createElement('div');ov.id='pfvOv';ov.hidden=true;ov.setAttribute('role','dialog');ov.setAttribute('aria-modal','true');ov.setAttribute('aria-label','Perfil');document.body.appendChild(ov);
+  ov.addEventListener('click',e=>{if(e.target===ov||e.target.closest('.pfv-x'))closeOv()})}
+ ov.hidden=false;ov.innerHTML='<div class="pfv-box"><p class="note" style="text-align:center;color:#fff">Carregando perfil…</p></div>';
+ const s=sbc();let row=null,err='';
+ const src=hub.querySelector('.av[data-u="'+uid+'"]');
+ if(s){
+  try{const r=await s.from('perfis').select('user_id,nome,foto,icone,cor,visual').eq('user_id',uid).maybeSingle();if(r.error)throw r.error;row=r.data}
+  catch(e){try{const r=await s.from('perfis').select('user_id,nome,foto,icone,cor').eq('user_id',uid).maybeSingle();if(r.error)throw r.error;row=r.data}catch(e2){err=String(e2.message||e2)}}
+ }
+ if(ov.hidden)return;
+ const v=clean(row&&row.visual);
+ const PALs=[['#ff6b7a','#ff9f43'],['#7c3aed','#4c7dff'],['#16a34a','#1ab5b0'],['#f4c430','#ff6b7a'],['#4c7dff','#1ab5b0'],['#9b6bff','#ff78c8'],['#0891b2','#7c3aed'],['#e11d48','#7c3aed']];
+ const pc=row&&row.cor!=null&&row.cor!==''&&PALs[+row.cor]?PALs[+row.cor]:PALs[0];
+ const near=src&&src.closest('.pm,.ms,.fc'),nb=near&&near.querySelector('b'),nome=(row&&row.nome)||(nb&&nb.textContent)||'Aventureiro';
+ const hex=uid.replace(/[^0-9a-f]/gi,''),code=[...hex.slice(0,30)].map(ch=>'<i style="height:'+(28+parseInt(ch,16)*4)+'%"></i>').join('');
+ const hasF=row&&row.foto&&/^data:image\//.test(row.foto),avatarHtml='<div class="av big" style="--a1:'+pc[0]+';--a2:'+pc[1]+(hasF?';background-image:url(&quot;'+row.foto+'&quot;)':'')+'">'+(hasF||!src?'':src.innerHTML)+'</div>';
+ ov.innerHTML='<div class="pfv-box"><button type="button" class="pfv-x" aria-label="Fechar perfil">×</button><div class="pfv-stage-w"><aside class="pfx-id" style="--a1:'+pc[0]+';--a2:'+pc[1]+'"><div class="pfx-ban"><span>PASSAPORTE DE AVENTUREIRO</span></div><div class="pfx-av">'+avatarHtml+'</div><h1 class="pfx-name">'+esc(nome)+'</h1><div class="pfx-code" aria-hidden="true">'+code+'</div><div class="pfx-no">Nº '+esc(hex.slice(0,8).toUpperCase())+'</div>'+(row?'':'<p class="pfv-no">Não foi possível ler o perfil completo'+(err?': '+esc(err):'')+'.'+(err?'':'')+'</p>')+'</aside></div></div>';
+ const stage=ov.querySelector('.pfv-stage-w'),card=ov.querySelector('.pfx-id');
+ stage.dataset.base='border-radius:28px;';
+ /* tema e fundo: aplicam-se à caixa inteira */
+ const box=ov.querySelector('.pfv-box');box.dataset.base='';
+ applyVis(box,card,v);
+ if(v.t||v.bg){box.style.padding='14px';box.style.borderRadius='28px';box.style.color='var(--tx)'}
+ const x=ov.querySelector('.pfv-x');if(x)x.focus();
+}
+document.addEventListener('keydown',e=>{
+ if(e.key==='Escape'&&ov&&!ov.hidden){e.stopPropagation();closeOv();return}
+ if((e.key==='Enter'||e.key===' ')&&e.target.matches&&e.target.matches('#hub .av[data-u]')){e.preventDefault();openProfile(e.target.dataset.u)}
+},true);
+hub.addEventListener('click',e=>{
+ const a=e.target.closest('.av[data-u]');if(!a||a.closest('.pfx-id'))return;
+ myId().then(me=>{if(a.dataset.u===me){const g=document.querySelector('[data-go=perfil]');if(g)g.click();return}openProfile(a.dataset.u)});
+});
+
+/* ---------- observa a troca de telas do hub ---------- */
+let busy=0;
+function tick(){
+ hub.querySelectorAll('.av[data-u]').forEach(a=>{if(a.closest('.pfx-id'))return;if(!a.hasAttribute('role')){a.setAttribute('role','button');a.tabIndex=0;a.title='Ver perfil'}});
+ if(hub.querySelector('.mw.pfx')&&!busy){busy=1;injectMine().finally(()=>{busy=0})}
+}
+new MutationObserver(tick).observe(hub,{childList:true,subtree:true});
+tick();
+})();
+</script>
 </body>
 </html>
