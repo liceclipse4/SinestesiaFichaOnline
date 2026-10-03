@@ -4231,6 +4231,21 @@ try{if(localStorage.getItem('sin-tema3')==='moranguetes'&&UN)ap()}catch(e){}
 #hub .pfx-f{display:flex;align-items:center;gap:12px;padding:8px 4px;border-bottom:1px dashed var(--ln)}
 #hub .pfx-f::before{content:"";flex:none;width:10px;height:10px;border-radius:50%;background:linear-gradient(135deg,var(--a1),var(--a2))}
 #hub .pfx-f span{flex:1;min-width:0}#hub .pfx-f em{display:block;font-style:normal;font-size:12px;color:var(--mu)}
+/* ===== CORREÇÃO MOBILE do perfil =====
+   A regra "sticky" do cartão vinha DEPOIS da regra do celular e vencia (mesma especificidade):
+   o cartão ficava preso no topo e passava por cima das seções ao rolar (texto sobre texto). */
+#hub .pfx-name,#hub .pfx-mail{overflow-wrap:anywhere;word-break:break-word}
+#hub .pfx-main,#hub .pfx-main>section{min-width:0}
+@media(max-width:820px){
+#hub .pfx-id{position:static;top:auto}
+#hub .pfx-grid{gap:16px}
+#hub .pfx-main section{border-radius:18px 8px 18px 8px}
+#hub .pfx-main section h2{overflow-wrap:anywhere}
+#hub .pfx-f{flex-wrap:wrap}
+#hub .pfx-f span{flex:1 1 150px;overflow-wrap:anywhere}
+#hub .pfx-main .bar>button{flex:1 1 auto;max-width:100%}
+#hub .pfx-main input[type=file]{max-width:100%;min-width:0}
+}
 </style>
 <script>
 /* ===== Seletor de temas em grade (cole por último, depois de todos os scripts de tema) ===== */
@@ -4364,6 +4379,14 @@ const css=`
 #pfvOv .pfx-id{position:relative!important;top:0!important;color:var(--tx)}
 #pfvOv .pfv-x{position:absolute;top:8px;right:8px;z-index:5;width:34px;height:34px;padding:0;border-radius:50%;font-size:20px;line-height:1}
 #pfvOv .pfv-no{margin:10px 16px 0;font-size:13px;color:var(--mu)}
+#pfvSec .pfv-t{min-width:0;overflow-wrap:anywhere;hyphens:auto}
+#pfvSec .apt{flex-wrap:wrap;text-align:left}
+#pfvSec .apt span{min-width:0;overflow-wrap:anywhere}
+#pfvSec .pfv-r label{flex:1 1 min(220px,100%);min-width:0}
+#pfvSec input[type=file]{max-width:100%;min-width:0}
+#pfvSec .pfv-r button{max-width:100%}
+@media(max-width:480px){#pfvSec .pfv-g{grid-template-columns:repeat(auto-fill,minmax(104px,1fr))}}
+@media(pointer:coarse){#pfvOv{backdrop-filter:none;background:rgba(8,6,20,.82)}}
 @media print{#pfvOv{display:none!important}}
 `;
 const st=document.createElement('style');st.textContent=css;document.head.appendChild(st);
@@ -4375,47 +4398,67 @@ const DONE={};
 const splitTop=t=>{const o=[];let d=0,c='',q='';for(const ch of t){if(q){c+=ch;if(ch===q)q='';continue}if(ch==='"'||ch==="'"){q=ch;c+=ch;continue}if(ch==='('||ch==='[')d++;if(ch===')'||ch===']')d--;if(ch===','&&!d){o.push(c);c=''}else c+=ch}o.push(c);return o.map(x=>x.trim()).filter(Boolean)};
 const SKIP=/^(header\s|\.hero|\.emblem|\.em-|\.bg\b|\.bf\b|\.lt\b|\.rain|\.cmx|#mfx|\.thpop|\.thbtn|\.themes|#menu|\.nb\b|\.mc\b|\.mgrid|\.sintoast|\.aph|\.ide|\.tip|\.d20|\.cmv|\.cmb|#nui|\.ctile|\.ch\b|\.ci\b|\.cpanel|\.wbox|\.star|\.mo\b|\.mod\b|\.pkb|\.pkc|\.nm\b)/;
 const BANP=['background','background-image','background-color','background-size','background-position','background-repeat'];
-function ensureTheme(name){
- if(!name||DONE[name])return;DONE[name]=1;
- const P=':is(#hub .pfx,#pfvOv .pfv-box)[data-pt="'+name+'"]';
- const tok=new RegExp('^html\\[data-tema=("?)'+name.replace(/[^\w-]/g,'')+'\\1\\]');
- let out='';
- const walk=(rules,wrap)=>{
+/* Índice dos temas: UMA varredura de todas as folhas de estilo, guardada em cache.
+   (Antes, cada troca de tema varria e reserializava o CSS inteiro do site.) */
+let IDX=null,IDXN=-1;
+const TOKG=/^html\[data-tema=("?)([\w-]+)\1\]/;
+const PH='\u0001P';
+const ownSheet=sh=>sh.ownerNode&&sh.ownerNode.id&&/^pfvT-/.test(sh.ownerNode.id);
+const sheetCount=()=>{let c=0;for(const sh of document.styleSheets)if(!ownSheet(sh))c++;return c};
+function buildIdx(){
+ const add=(o,n,t)=>{if(t)o[n]=(o[n]||'')+t};
+ const push=(o,n,v)=>{(o[n]||(o[n]=[])).push(v)};
+ const walk=rules=>{
+  const res={};
   for(const r of rules){
    if(r.cssRules&&r.conditionText!==undefined&&!r.selectorText){ /* @media / @supports */
     if(/print/i.test(r.conditionText))continue;
-    const before=out;out='';walk(r.cssRules,wrap);const inner=out;out=before;
-    if(inner)out+='@'+(r.constructor.name==='CSSSupportsRule'?'supports':'media')+' '+r.conditionText+'{'+inner+'}\n';
+    const inner=walk(r.cssRules),kw=r.constructor.name==='CSSSupportsRule'?'supports':'media';
+    for(const n in inner)add(res,n,'@'+kw+' '+r.conditionText+'{'+inner[n]+'}\n');
     continue;
    }
    if(!r.selectorText||!r.style)continue;
-   const sel=[],ban=[];
+   const sel={},ban={};
    for(const part of splitTop(r.selectorText)){
-    let m,rest;
-    if(name==='claro'){if(part===':root'){sel.push(P);continue}else continue}
-    m=part.match(tok);if(!m)continue;
-    rest=part.slice(m[0].length);
+    if(part===':root'){push(sel,'claro',PH);continue}
+    const m=part.match(TOKG);if(!m)continue;
+    const n=m[2];if(n==='claro')continue;
+    let rest=part.slice(m[0].length);
     if(rest&&!/^\s/.test(rest))continue;
     rest=rest.trim();
-    if(rest===''){sel.push(P);continue}
-    if(rest==='body'){sel.push(P);continue}
+    if(rest===''||rest==='body'){push(sel,n,PH);continue}
     if(/^body\b/.test(rest))continue;
-    if(rest==='header'){ban.push(P+' .pfx-ban');continue}
-    if(/^main\s*>\s*section/.test(rest)){sel.push(P+' '+rest.replace(/^main\s*>\s*/,''));continue}
+    if(rest==='header'){push(ban,n,PH+' .pfx-ban');continue}
+    if(/^main\s*>\s*section/.test(rest)){push(sel,n,PH+' '+rest.replace(/^main\s*>\s*/,''));continue}
     if(SKIP.test(rest))continue;
-    sel.push(P+' '+rest);
+    push(sel,n,PH+' '+rest);
    }
-   if(sel.length&&r.style.cssText)out+=sel.join(',')+'{'+r.style.cssText+'}\n';
-   if(ban.length){let t='';BANP.forEach(k=>{const v=r.style.getPropertyValue(k);if(v)t+=k+':'+v+';'});if(t)out+=ban.join(',')+'{'+t+'}\n'}
+   const ns=Object.keys(sel),nb=Object.keys(ban);
+   if(!ns.length&&!nb.length)continue;
+   const ct=r.style.cssText;
+   if(ct)for(const n of ns)add(res,n,sel[n].join(',')+'{'+ct+'}\n');
+   if(nb.length){let t='';BANP.forEach(k=>{const v=r.style.getPropertyValue(k);if(v)t+=k+':'+v+';'});if(t)for(const n of nb)add(res,n,ban[n].join(',')+'{'+t+'}\n')}
   }
+  return res;
  };
+ const out={};
  for(const sh of document.styleSheets){
-  if(sh.ownerNode&&sh.ownerNode.id&&/^pfvT-/.test(sh.ownerNode.id))continue;
+  if(ownSheet(sh))continue;
   let rules;try{rules=sh.cssRules}catch(e){continue}
-  walk(rules);
+  const r=walk(rules);for(const n in r)add(out,n,r[n]);
  }
- const e=document.createElement('style');e.id='pfvT-'+name;e.textContent=out;document.head.appendChild(e);
+ IDX=out;IDXN=sheetCount();
 }
+function ensureTheme(name){
+ if(!name||DONE[name])return;DONE[name]=1;
+ if(!IDX||IDXN!==sheetCount())buildIdx();
+ const P=':is(#hub .pfx,#pfvOv .pfv-box)[data-pt="'+name+'"]';
+ const e=document.createElement('style');e.id='pfvT-'+name;
+ e.textContent=(IDX[name]||'').split(PH).join(P);
+ document.head.appendChild(e);
+}
+window.__sinEnsureTheme=ensureTheme;
+
 const known=()=>[...document.querySelectorAll('.thpop .thi[data-t]')].map(b=>({k:b.dataset.t,n:(b.querySelector('span')||b).textContent.replace(/\s*🔒\s*$/,'').trim(),sw:(b.querySelector('.sw')||{style:{}}).style.background||'',lock:b.classList.contains('lock')||getComputedStyle(b).display==='none'}));
 
 /* ---------- dados do visual ---------- */
@@ -4439,24 +4482,58 @@ async function loadVis(id){
 }
 
 /* ---------- aplicar o visual ---------- */
+/* data:URL gigante dentro do style é lento: converte uma vez em blob: e reaproveita */
+const BU=new Map();
+function fastUrl(d){
+ let u=BU.get(d);if(u)return u;
+ try{
+  const i=d.indexOf(','),m=d.slice(5,d.indexOf(';')),bin=atob(d.slice(i+1)),a=new Uint8Array(bin.length);
+  for(let k=0;k<bin.length;k++)a[k]=bin.charCodeAt(k);
+  u=URL.createObjectURL(new Blob([a],{type:m}));
+ }catch(e){u=d}
+ if(BU.size>=12){const k=BU.keys().next().value,o=BU.get(k);if(o&&o.indexOf('blob:')===0)URL.revokeObjectURL(o);BU.delete(k)}
+ BU.set(d,u);return u;
+}
 function applyVis(stage,card,v){
  if(!stage)return;
  if(v.t)ensureTheme(v.t);
- if(v.t)stage.dataset.pt=v.t;else delete stage.dataset.pt;
+ if((stage.dataset.pt||'')!==v.t){if(v.t)stage.dataset.pt=v.t;else delete stage.dataset.pt}
  stage.classList.toggle('pfv-stage',!!(v.t||v.bg));
- stage.style.cssText=(stage.dataset.base||'')+(v.t?'background-attachment:scroll;':'');
- if(v.bg){stage.style.backgroundImage='url("'+v.bg+'")';stage.style.backgroundSize='cover';stage.style.backgroundPosition='center';stage.style.backgroundRepeat='no-repeat'}
+ /* só reescreve o estilo quando algo mudou (antes reprocessava a imagem inteira a cada clique) */
+ const sig=v.t+'|'+v.bg.length+':'+v.bg.slice(-24);
+ if(stage.__sig!==sig){
+  stage.style.cssText=(stage.dataset.base||'')+(v.t?'background-attachment:scroll;':'');
+  if(v.bg){stage.style.backgroundImage='url("'+fastUrl(v.bg)+'")';stage.style.backgroundSize='cover';stage.style.backgroundPosition='center';stage.style.backgroundRepeat='no-repeat'}
+  stage.__sig=sig;
+ }
  if(card){
   const ban=card.querySelector('.pfx-ban');
   card.classList.toggle('pfv-img',!!v.bn);card.classList.toggle('pfv-txt',!!v.tx);
-  if(ban){ban.style.backgroundImage=v.bn?'url("'+v.bn+'")':'';if(v.bn){ban.style.backgroundSize='cover';ban.style.backgroundPosition='center'}else{ban.style.backgroundSize='';ban.style.backgroundPosition=''}}
+  if(ban){
+   const bs=v.bn.length+':'+v.bn.slice(-24);
+   if(ban.__sig!==bs){
+    ban.style.backgroundImage=v.bn?'url("'+fastUrl(v.bn)+'")':'';
+    if(v.bn){ban.style.backgroundSize='cover';ban.style.backgroundPosition='center'}else{ban.style.backgroundSize='';ban.style.backgroundPosition=''}
+    ban.__sig=bs;
+   }
+  }
  }
 }
 
 /* ---------- redimensionar imagens ---------- */
-function loadImage(f){return new Promise((ok,no)=>{if(!f||!/^image\//.test(f.type))return no(new Error('Escolha um arquivo de imagem.'));const r=new FileReader();r.onload=()=>{const i=new Image();i.onload=()=>ok(i);i.onerror=()=>no(new Error('Não foi possível ler essa imagem.'));i.src=r.result};r.onerror=()=>no(new Error('Não foi possível ler o arquivo.'));r.readAsDataURL(f)})}
-function cropCover(im,w,h,q){const cv=document.createElement('canvas');cv.width=w;cv.height=h;const g=cv.getContext('2d');g.fillStyle='#000';g.fillRect(0,0,w,h);const k=Math.max(w/im.width,h/im.height),dw=im.width*k,dh=im.height*k;g.drawImage(im,(w-dw)/2,(h-dh)/2,dw,dh);return cv.toDataURL('image/jpeg',q)}
-function fitMax(im,M,q){const k=Math.min(1,M/Math.max(im.width,im.height)),cv=document.createElement('canvas');cv.width=Math.max(1,Math.round(im.width*k));cv.height=Math.max(1,Math.round(im.height*k));const g=cv.getContext('2d');g.fillStyle='#000';g.fillRect(0,0,cv.width,cv.height);g.drawImage(im,0,0,cv.width,cv.height);return cv.toDataURL('image/jpeg',q)}
+function loadImage(f){
+ if(!f||!/^image\//.test(f.type))return Promise.reject(new Error('Escolha um arquivo de imagem.'));
+ const fb=()=>new Promise((ok,no)=>{const u=URL.createObjectURL(f),i=new Image();i.onload=()=>{URL.revokeObjectURL(u);ok(i)};i.onerror=()=>{URL.revokeObjectURL(u);no(new Error('Não foi possível ler essa imagem.'))};i.src=u});
+ return window.createImageBitmap?createImageBitmap(f).catch(fb):fb();
+}
+/* toBlob codifica fora da thread principal (toDataURL travava o aparelho por centenas de ms) */
+const enc=(cv,q)=>new Promise((ok,no)=>{
+ const bad=()=>no(new Error('Não foi possível processar a imagem.'));
+ if(!cv.toBlob){try{ok(cv.toDataURL('image/jpeg',q))}catch(e){bad()}return}
+ cv.toBlob(b=>{if(!b)return bad();const r=new FileReader();r.onload=()=>ok(r.result);r.onerror=bad;r.readAsDataURL(b)},'image/jpeg',q);
+});
+function cropCover(im,w,h,q){const cv=document.createElement('canvas');cv.width=w;cv.height=h;const g=cv.getContext('2d');g.fillStyle='#000';g.fillRect(0,0,w,h);const k=Math.max(w/im.width,h/im.height),dw=im.width*k,dh=im.height*k;g.drawImage(im,(w-dw)/2,(h-dh)/2,dw,dh);return enc(cv,q)}
+function fitMax(im,M,q){const k=Math.min(1,M/Math.max(im.width,im.height)),cv=document.createElement('canvas');cv.width=Math.max(1,Math.round(im.width*k));cv.height=Math.max(1,Math.round(im.height*k));const g=cv.getContext('2d');g.fillStyle='#000';g.fillRect(0,0,cv.width,cv.height);g.drawImage(im,0,0,cv.width,cv.height);return enc(cv,q)}
 
 /* ---------- seção "Personalizar perfil" (no meu perfil) ---------- */
 async function injectMine(){
@@ -4485,6 +4562,8 @@ async function injectMine(){
  foldId(main);
  syncUi();
  applyVis(root,card,DRAFT);
+ root.dataset.pfvOk='1';
+ (window.requestIdleCallback||setTimeout)(()=>{try{if(!IDX)buildIdx()}catch(e){}});
 }
 /* "Identidade" vira um bloco que abre e fecha (os campos continuam no HTML, só escondidos) */
 function foldId(main){
@@ -4545,8 +4624,10 @@ hub.addEventListener('change',async e=>{
  try{
   say('Processando imagem…');
   const im=await loadImage(f);
-  if(id==='pfv-bn'){DRAFT.bn=cropCover(im,800,280,.82)}
-  else{let u=fitMax(im,1280,.72);if(u.length>1200000)u=fitMax(im,960,.6);DRAFT.bg=u}
+  try{
+   if(id==='pfv-bn'){DRAFT.bn=await cropCover(im,800,280,.82)}
+   else{let u=await fitMax(im,1280,.72);if(u.length>1200000)u=await fitMax(im,960,.6);DRAFT.bg=u}
+  }finally{if(im.close)im.close()}
   repaint();say('Imagem aplicada. Clique em “Salvar aparência do perfil” para guardar.');
  }catch(err){say(esc(err.message||err),1)}
 });
@@ -4605,13 +4686,45 @@ hub.addEventListener('click',e=>{
 });
 
 /* ---------- observa a troca de telas do hub ---------- */
-let busy=0;
-function tick(){
- hub.querySelectorAll('.av[data-u]').forEach(a=>{if(a.closest('.pfx-id'))return;if(!a.hasAttribute('role')){a.setAttribute('role','button');a.tabIndex=0;a.title='Ver perfil'}});
- if(hub.querySelector('.mw.pfx')&&!busy){busy=1;injectMine().finally(()=>{busy=0})}
+let busy=0,tq=0;
+function run(){
+ if(hub.hidden)return;
+ hub.querySelectorAll('.av[data-u]:not([role])').forEach(a=>{if(a.closest('.pfx-id'))return;a.setAttribute('role','button');a.tabIndex=0;a.title='Ver perfil'});
+ const root=hub.querySelector('.mw.pfx');
+ if(root&&!root.dataset.pfvOk&&!busy){busy=1;injectMine().finally(()=>{busy=0})}
 }
+function tick(){if(!tq)tq=requestAnimationFrame(()=>{tq=0;run()})}
 new MutationObserver(tick).observe(hub,{childList:true,subtree:true});
 tick();
+})();
+</script>
+<style>
+/* ===== DESEMPENHO =====
+   1) Com o hub (perfil/campanhas) aberto, o cabeçalho, as borboletas do fundo, o menu e a vinheta
+      ficam ESCONDIDOS atrás dele mas continuavam animando (uma delas animava "top" => layout a cada quadro). Pausa tudo isso.
+   2) No celular: nada de blur(70px) girando, menos borboletas, sem backdrop-filter nem brilho pesado. */
+html[data-hubopen] :is(body>header,body>.bg,body>.cor,#menu),
+html[data-hubopen] :is(body>header,body>.bg,body>.cor,#menu)::before,
+html[data-hubopen] :is(body>header,body>.bg,body>.cor,#menu)::after,
+html[data-hubopen] :is(body>header,body>.bg,body>.cor,#menu) *,
+html[data-hubopen] :is(body>header,body>.bg,body>.cor,#menu) *::before,
+html[data-hubopen] :is(body>header,body>.bg,body>.cor,#menu) *::after{animation:none!important}
+@media (max-width:820px),(pointer:coarse){
+#mfx::after{inset:0;filter:none;animation:none;background:radial-gradient(60% 40% at 15% 15%,rgba(124,58,237,.2),transparent 70%),radial-gradient(55% 40% at 88% 40%,rgba(6,182,212,.15),transparent 70%),radial-gradient(60% 40% at 35% 95%,rgba(236,72,153,.17),transparent 70%)}
+#mfx>svg.bf:nth-of-type(n+5){display:none!important}
+#mfx .bf{filter:none!important}
+#hub main>section,#hub .mc{backdrop-filter:none!important}
+#hub .mt,#menu .mt{animation:none!important;filter:none!important}
+#hub::before{animation:none!important}
+}
+</style>
+<script>
+/* marca no <html> quando o hub está aberto (usado pelo CSS acima) */
+(function(){
+if(window.__sinPerf)return;window.__sinPerf=1;
+const R=document.documentElement,hub=document.getElementById('hub');if(!hub)return;
+const sync=()=>{if(hub.hidden)delete R.dataset.hubopen;else R.dataset.hubopen='1'};
+new MutationObserver(sync).observe(hub,{attributes:true,attributeFilter:['hidden']});sync();
 })();
 </script>
 </body>
