@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<script>try{var t=localStorage.getItem('sin-tema');document.documentElement.dataset.tema=['claro','escuro','singular'].includes(t)?t:'claro';var f=localStorage.getItem('sin-fx');document.documentElement.dataset.fx=['frente','tras','off'].includes(f)?f:'frente'}catch(e){}</script>
+<script>try{var t=localStorage.getItem('sin-tema');document.documentElement.dataset.tema=['claro','escuro','singular'].includes(t)?t:'claro';var f=localStorage.getItem('sin-fx');document.documentElement.dataset.fx=['frente','tras','off'].includes(f)?f:(matchMedia('(max-width:900px),(pointer:coarse)').matches?'off':'frente')}catch(e){}</script>
 <title>Sinestesia o RPG - Ficha de personagem</title>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;800&family=Source+Sans+3:wght@400;600&display=swap" rel="stylesheet">
 <style>
@@ -143,6 +143,13 @@ html[data-fx=tras] .bg{z-index:0}
 html[data-fx=tras] header .bf,html[data-fx=tras] header .lt{z-index:-1}
 html[data-fx=off] .bg,html[data-fx=off] header .bf,html[data-fx=off] header .lt{display:none!important}
 @media print{.bg,.bf,.lt{display:none}html[data-tema]{--tx:#000;--mu:#444;--ln:#bbb;--ac:#000;--sg:#333;--rd:#b00;--pn:#fff;--pn2:#fff}html[data-tema] body{background:#fff!important}html[data-tema] header{background:#fff!important;box-shadow:none!important}html[data-tema] h1{background:none!important;color:#000!important;-webkit-text-fill-color:#000!important}html[data-tema] section,html[data-tema] .card,html[data-tema] .box,html[data-tema] input,html[data-tema] select,html[data-tema] textarea{background:#fff!important}html[data-tema] .note,html[data-tema] header p{color:#333!important}header{background:#fff}h1{background:none;color:#000;-webkit-text-fill-color:#000}section{border-top-color:#999;box-shadow:none}body{background:#fff;color:#000}header .bar,.noprint{display:none}section,.box,.card,.sk div{background:#fff;border-color:#999}input,select,textarea{background:#fff;color:#000;border-color:#bbb}.box b,.sk strong,.f b{color:#000}#pimg{border-color:#999}}
+</style>
+<style id="sin-leve">
+/* modo leve: celular / toque. Para animações de enfeite e tira blur pesado */
+@media (max-width:900px),(pointer:coarse){
+ *,*::before,*::after{animation-duration:.001s!important;animation-delay:0s!important;animation-iteration-count:1!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
+ #mfx::after,.idz .via,.idg1,.bf{filter:none!important}
+}
 </style>
 </head>
 <body>
@@ -378,15 +385,15 @@ $('#parq').onchange=e=>{const f=e.target.files[0];e.target.value='';if(!f)return
   const m=480,k=Math.min(1,m/Math.max(im.width,im.height)),cv=document.createElement('canvas');
   cv.width=Math.round(im.width*k);cv.height=Math.round(im.height*k);
   cv.getContext('2d').drawImage(im,0,0,cv.width,cv.height);
-  S.port=cv.toDataURL('image/jpeg',.85);paintPort();save()};
+  S.port=cv.toDataURL('image/jpeg',.8);paintPort();save();if(window.__sinFlush)window.__sinFlush()};
   im.onerror=()=>alert('Não foi possível ler essa imagem.');im.src=r.result};
  r.readAsDataURL(f)};
 function exportar(){
- const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(S,null,1)],{type:'application/json'}));
+ const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(Object.assign({},S,{cloud:undefined}),null,1)],{type:'application/json'}));
  a.download=((S.info.nome||'ficha').replace(/\W+/g,'_'))+'.json';a.click();
 }
 $('#arq').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();
- r.onload=()=>{try{S=Object.assign(NEW(),JSON.parse(r.result));fix();ROLL=null;build()}catch(x){alert('Arquivo inválido. Abra uma ficha baixada deste site.')}};r.readAsText(f);e.target.value=''};
+ r.onload=()=>{try{const J=JSON.parse(r.result),cl0=S.cloud;S=Object.assign(NEW(),J);if(cl0)S.cloud=cl0;else delete S.cloud;fix();ROLL=null;build()}catch(x){alert('Arquivo inválido. Abra uma ficha baixada deste site.')}};r.readAsText(f);e.target.value=''};
 function limpar(){if(confirm('Apagar a ficha atual e começar uma nova?')){S=NEW();ROLL=null;build()}}
 build();
 </script>
@@ -661,8 +668,15 @@ lists();calc();
 if(window.__sinMenu)return;window.__sinMenu=1;
 const RK='sin-roster',rawSet=Storage.prototype.setItem;
 let R={},cur=null;
-try{R=JSON.parse(localStorage.getItem(RK))||{}}catch(e){R={}}
+try{R=JSON.parse(localStorage.getItem(RK))||{}}catch(e){try{const raw=localStorage.getItem(RK);if(raw)rawSet.call(localStorage,'sin-roster-bak',raw)}catch(e2){}R={}}
 const wr=()=>{try{rawSet.call(localStorage,RK,JSON.stringify(R));return true}catch(e){return false}};
+/* grava com atraso (não trava o celular a cada tecla) e sempre antes de sair/ocultar a página */
+let wt=0,dirty=false;
+const flush=()=>{clearTimeout(wt);wt=0;if(!dirty)return true;dirty=false;const o=wr();if(!o)alert('Não foi possível salvar (sem espaço no navegador). Baixe a ficha para não perder os dados.');return o};
+window.__sinFlush=flush;
+addEventListener('pagehide',flush);document.addEventListener('visibilitychange',()=>{if(document.hidden)flush()});
+/* outra aba mexeu nas fichas: junta em vez de sobrescrever */
+addEventListener('storage',e=>{if(e.key!==RK||!e.newValue)return;try{const N=JSON.parse(e.newValue);Object.keys(N).forEach(k=>{if(!R[k]||(k!==cur&&N[k].t>R[k].t))R[k]=N[k]});Object.keys(R).forEach(k=>{if(!N[k]&&k!==cur)delete R[k]});const m=document.getElementById('menu');if(m&&!m.hidden)render()}catch(x){}});
 /* ficha vazia = sem nome e sem nada preenchido (nunca vai para a nuvem e some da lista) */
 const vazia=s=>{if(!s)return true;
  if(((s.info&&s.info.nome)||'').trim())return false;
@@ -684,7 +698,7 @@ Storage.prototype.setItem=function(k,v){
  if(this===localStorage&&k==='sin-ficha'){
   if(!cur||!R[cur])return;
   try{R[cur]={s:JSON.parse(v),t:Date.now()}}catch(e){return}
-  if(!wr())throw new Error('quota');
+  dirty=true;clearTimeout(wt);wt=setTimeout(flush,700);
   return;
  }
  return rawSet.apply(this,arguments);
@@ -718,10 +732,10 @@ html[data-c6] #menu{background:radial-gradient(circle at 50% 30%,#3a0018,#000 70
 const st=document.createElement('style');st.textContent=css;document.head.appendChild(st);
 
 const ov=document.createElement('div');ov.id='menu';ov.setAttribute('role','dialog');ov.setAttribute('aria-modal','true');ov.setAttribute('aria-label','Seus personagens');
-ov.innerHTML='<div class="mw"><div class="mt">Seus personagens</div><p class="note" id="mnote"></p><div class="mgrid" id="mgrid"></div><div class="mbar"><button type="button" id="mimp">Importar ficha (.json)</button><button type="button" id="mback" hidden>Voltar à ficha</button></div><input type="file" id="mfile" accept=".json" hidden></div>';
+ov.innerHTML='<div class="mw"><div class="mt">Seus personagens</div><p class="note" id="mnote"></p><div class="mgrid" id="mgrid"></div><div class="mbar"><button type="button" id="mimp">Importar ficha (.json)</button><button type="button" id="mrec" hidden>Recuperar fichas removidas</button><button type="button" id="mback" hidden>Voltar à ficha</button></div><input type="file" id="mfile" accept=".json" hidden></div>';
 document.body.appendChild(ov);
 
-const show=()=>{purge();render();ov.hidden=false;document.body.style.overflow='hidden';$('#mback').hidden=!cur||!R[cur]};
+const show=()=>{purge();render();updRec();ov.hidden=false;document.body.style.overflow='hidden';$('#mback').hidden=!cur||!R[cur]};
 const hide=()=>{ov.hidden=true;document.body.style.overflow=''};
 
 function abrir(id){
@@ -769,11 +783,20 @@ function render(){
  $('#mnote').textContent=Object.keys(R).length?'Escolha um personagem para continuar. Armazenamento usado: '+(kb/1024).toFixed(1)+' MB de cerca de 5 MB. Use "Baixar ficha" para guardar backups.':'Você ainda não tem personagens. Crie a primeira ficha!';
 }
 
+const trash=()=>{try{const t=JSON.parse(localStorage.getItem('sin-trash'));return Array.isArray(t)?t:[]}catch(e){return[]}};
+function updRec(){const b=$('#mrec');if(b)b.hidden=!trash().length}
+$('#mrec').onclick=()=>{const t=trash();if(!t.length)return;
+ if(!confirm('Recuperar '+t.length+' ficha(s) que a sincronização removeu deste aparelho?\n\n'+t.map(x=>(x.s&&x.s.info&&x.s.info.nome)||'Sem nome').join(', ')))return;
+ const add=[];t.forEach(x=>{if(!x||!x.s)return;const s=Object.assign({},x.s);delete s.cloud;const id=uid();R[id]={s,t:Date.now()};add.push(id)});
+ if(!wr()){add.forEach(id=>delete R[id]);alert('Sem espaço no navegador. Exclua um personagem e tente de novo.');return}
+ try{rawSet.call(localStorage,'sin-trash','[]')}catch(e){}
+ render();updRec()};
 $('#mimp').onclick=()=>$('#mfile').click();
 $('#mfile').onchange=e=>{
  const f=e.target.files[0];e.target.value='';if(!f)return;
  const r=new FileReader();
- r.onload=()=>{try{const o=JSON.parse(r.result);if(!o||typeof o!=='object'||Array.isArray(o))throw 0;if(o.ovv!==2){o.ov={};o.ovv=2}criar(o)}catch(x){alert('Arquivo inválido. Abra uma ficha baixada deste site.')}};
+ const keep=window.__sinKeepCloud;window.__sinKeepCloud=0;
+ r.onload=()=>{try{const o=JSON.parse(r.result);if(!o||typeof o!=='object'||Array.isArray(o))throw 0;if(!keep)delete o.cloud;if(o.ovv!==2){o.ov={};o.ovv=2}criar(o)}catch(x){alert('Arquivo inválido. Abra uma ficha baixada deste site.')}};
  r.readAsText(f);
 };
 $('#mback').onclick=hide;
@@ -1753,7 +1776,7 @@ let SYERR='',RT=0,sb=null,U=null,P={nome:'',foto:''},V='camps',M='',AUTO=true,tm
 try{AUTO=localStorage.getItem('sin-auto')!=='0'}catch(e){}
 const ok=r=>{if(r.error)throw r.error;return r.data};
 const nick=()=>P.nome||(U&&U.email||'jogador').split('@')[0];
-const roster=()=>{try{return JSON.parse(localStorage.getItem('sin-roster'))||{}}catch(e){return{}}};
+const roster=()=>{try{if(window.__sinFlush)window.__sinFlush();return JSON.parse(localStorage.getItem('sin-roster'))||{}}catch(e){return{}}};
 const T0=document.title,BG=(document.querySelector('.bg')||{outerHTML:''}).outerHTML,EMB=[...document.querySelectorAll('.hero .emblem')].map(e=>e.outerHTML).join('');
 const img=s=>/^data:image\//.test(s||'')?s:'';
 const ICN={"d20": "M12 2l9 5v10l-9 5-9-5V7zM12 7.2l4.6 8H7.4z", "star": "M12 2l2.9 6.3 6.9.8-5.1 4.7 1.4 6.8L12 17.3l-6.1 3.3 1.4-6.8L2.2 9.1l6.9-.8z", "bolt": "M13.5 2L4 14h6.5L9 22l11-13h-6.5z", "butterfly": "M12 11C11 5 5 2 3 4c-2 3 1 8 9 7zM12 13c-7-1-9 4-6 7 2 2 6-1 6-7zM12 11c1-6 7-9 9-7 2 3-1 8-9 7zM12 13c7-1 9 4 6 7-2 2-6-1-6-7zM11.2 6h1.6v13h-1.6z", "shield": "M12 2l8 3v6c0 5.2-3.4 9-8 11-4.6-2-8-5.8-8-11V5z", "sword": "M21 3l-1 6-9.5 9.5-3-3L17 6zM6 14l4 4-1.5 1.5-4-4zM3.5 17.5l3 3L4 22l-2-2z", "crown": "M3 8l4.5 4L12 4l4.5 8L21 8l-2 11H5z", "moon": "M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5z", "flame": "M12 2c.8 3.5 6 6 6 12a6 6 0 0 1-12 0c0-2.5 1.2-4 2.5-5.5.3 1.6 1 2.5 2 2.5 1.5-2 1.5-5.5 1.5-9z", "eye": "M12 5C6.5 5 2.5 10 2 12c.5 2 4.5 7 10 7s9.5-5 10-7c-.5-2-4.5-7-10-7zm0 11.5a4.5 4.5 0 1 1 0-9 4.5 4.5 0 0 1 0 9zm0-2.5a2 2 0 1 0 0-4 2 2 0 0 0 0 4z"};
@@ -1885,7 +1908,13 @@ async function push(){
  if(!sb||!U)throw new Error('Entre na sua conta primeiro.');
  const s=JSON.parse(JSON.stringify(S)),c=s.cloud||{};
  const row={nome:(s.info&&s.info.nome)||'Sem nome',data:s,campanha_id:c.cid||null,updated_at:new Date().toISOString()};
- if(c.fid){ok(await sb.from('fichas').update(row).eq('id',c.fid));return true}
+ if(c.fid){
+  const u=ok(await sb.from('fichas').update(row).eq('id',c.fid).select('id'));
+  if(u&&u.length)return true;/* atualizou de verdade */
+  const ex=ok(await sb.from('fichas').select('id').eq('id',c.fid).maybeSingle());
+  if(ex)return false;/* existe mas esta conta não pode editar: não duplica */
+  delete c.fid;s.cloud=c;row.data=s;/* a linha não existe / não é desta conta: vira ficha nova */
+ }
  if(!((s.info&&s.info.nome)||'').trim())return false;/* ficha sem nome não sobe para a nuvem */
  row.owner=U.id;
  const d=ok(await sb.from('fichas').insert(row).select('id').single());
@@ -1919,7 +1948,7 @@ async function sync(manual){
   let rows=ok(await sb.from('fichas').select('id,data,campanha_id,updated_at').eq('owner',U.id))||[];
   rows=rows.filter(r=>pend.indexOf(r.id)<0);
   let seen=rd('sin-seen',[]);
-  const mk='sin-mine-'+U.id;let mine=rd(mk,[]);
+  const mk='sin-mine2-'+U.id;let mine=rd(mk,[]);
   const ids=rows.map(r=>r.id);
   /* 3) fichas que esta conta já tinha e foram excluídas em outro aparelho: saem daqui também (cópia de segurança em sin-trash) */
   const gone=Object.keys(R).filter(k=>{const c=R[k].s&&R[k].s.cloud;return c&&c.fid&&mine.indexOf(c.fid)>=0&&ids.indexOf(c.fid)<0});
@@ -1927,8 +1956,8 @@ async function sync(manual){
    let good=false;try{const g=await sb.auth.getUser();good=!g.error&&!!g.data&&!!g.data.user&&g.data.user.id===U.id}catch(e){}
    if(good){
     let tr=rd('sin-trash',[]);
-    gone.forEach(k=>{tr.push({t:Date.now(),s:Object.assign({},R[k].s,{port:''})});delete R[k]});
-    try{localStorage.setItem('sin-trash',JSON.stringify(tr.slice(-10)))}catch(e){}
+    gone.forEach(k=>{tr.push({t:Date.now(),s:Object.assign({},R[k].s)});delete R[k]});
+    try{localStorage.setItem('sin-trash',JSON.stringify(tr.slice(-6)))}catch(e){try{localStorage.setItem('sin-trash',JSON.stringify(tr.slice(-6).map(x=>Object.assign({},x,{s:Object.assign({},x.s,{port:''})}))))}catch(e2){}}
     ch=true;
    }
   }
@@ -1950,7 +1979,7 @@ async function sync(manual){
    const d=ok(await sb.from('fichas').insert({owner:U.id,nome:(s.info&&s.info.nome)||'Sem nome',data:s,updated_at:new Date(R[k].t).toISOString()}).select('id').single());
    R[k].s=Object.assign({},s,{cloud:{fid:d.id}});ch=true;
   }
-  Object.keys(R).forEach(k=>{const c=R[k].s&&R[k].s.cloud;if(c&&c.fid){if(seen.indexOf(c.fid)<0)seen.push(c.fid);if(mine.indexOf(c.fid)<0)mine.push(c.fid)}});
+  Object.keys(R).forEach(k=>{const c=R[k].s&&R[k].s.cloud;if(c&&c.fid){if(seen.indexOf(c.fid)<0)seen.push(c.fid)}});
   ids.forEach(i=>{if(mine.indexOf(i)<0)mine.push(i)});
   try{localStorage.setItem('sin-seen',JSON.stringify(seen));localStorage.setItem(mk,JSON.stringify(mine))}catch(e){}
   SYERR='';
@@ -1970,7 +1999,7 @@ function abrir(row){
  const R=roster(),id=Object.keys(R).find(k=>R[k].s&&R[k].s.cloud&&R[k].s.cloud.fid===row.id);
  if(id){R[id]={s,t:Date.now()};prev.call(localStorage,'sin-roster',JSON.stringify(R));location.reload();return}
  const dt=new DataTransfer();dt.items.add(new File([JSON.stringify(s)],'ficha.json',{type:'application/json'}));
- const f=document.getElementById('mfile');f.files=dt.files;f.dispatchEvent(new Event('change'));
+ const f=document.getElementById('mfile');f.files=dt.files;window.__sinKeepCloud=1;f.dispatchEvent(new Event('change'));
  close_();
 }
 /* ---------- ações ---------- */
@@ -3093,7 +3122,7 @@ document.addEventListener('click',async e=>{
 /* ---------- observa a página (campanhas são desenhadas depois) ---------- */
 let raf=0;
 const run=()=>{raf=0;try{setupFut()}catch(e){}try{setupDado()}catch(e){}};
-const sched=()=>{if(!raf)raf=requestAnimationFrame(run)};
+const sched=()=>{if(!raf)raf=setTimeout(run,250)};
 new MutationObserver(sched).observe(document.body,{childList:true,subtree:true});
 run();
 })();
@@ -4693,7 +4722,7 @@ function run(){
  const root=hub.querySelector('.mw.pfx');
  if(root&&!root.dataset.pfvOk&&!busy){busy=1;injectMine().finally(()=>{busy=0})}
 }
-function tick(){if(!tq)tq=requestAnimationFrame(()=>{tq=0;run()})}
+function tick(){if(!tq)tq=setTimeout(()=>{tq=0;run()},250)}
 new MutationObserver(tick).observe(hub,{childList:true,subtree:true});
 tick();
 })();
