@@ -238,7 +238,7 @@ html[data-tema=escuro] #sk select,html[data-tema=singular] #sk select{background
 /* ===== MODO PERFORMANCE: desliga todos os efeitos ===== */
 html[data-perf] *,html[data-perf] *::before,html[data-perf] *::after{animation:none!important;transition:none!important;scroll-behavior:auto!important;
  text-shadow:none!important;box-shadow:none!important;filter:none!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
-html[data-perf] :is(.bg,.bf,.lt,svg.bf,#mfx,.lcx,.nrx,.mun,.cmx,.apx,.idx,.idz,.esx,.atx,.jjx,.jjxf,.mox,.jjtp,.cmb,.cmv,#sinBlood){display:none!important}
+html[data-perf] :is(.bg,.bf,.lt,svg.bf,#mfx,.lcx,.nrx,.mun,.cmx,.apx,.idx,.idz,.esx,.atx,.jjx,.jjxf,.mox,.jjtp,.cmb,.cmv,#sinBlood,#sinHeal){display:none!important}
 /* cena de morte: continua aparecendo (precisa dos botões), mas estática */
 html[data-perf] #sinDead{background:#2a0006}
 html[data-perf] #sinDead :is(.sdv,.sdband,.sddrips){display:none!important}
@@ -311,7 +311,7 @@ function setFx(f){if(!['frente','tras','off'].includes(f))f='frente';document.do
 setFx(document.documentElement.dataset.fx);
 const AT=['FOR','DES','CON','INT','SAB','CAR'];
 const CL={
-Poderoso:{pv:18,pvn:4,es:5,esn:2,per:2,esp:3,est:2,f:{1:'Habilidade Sem Limite: desarmado 1d6 e +1 na margem de ameaça com arma',3:'A Força de um Super: soma FOR ou DES no dano, ataque extra com -2, desarmado 1d8',6:'Golpe Devastador: +5 Luta, Pontaria e dano, desarmado 1d10',12:'Corrente Destrutiva: ataque extra com +5 (e -5 na defesa), +1 margem de ameaça',18:'O Domínio de um Lutador: +20 ES, +5 em testes e dano em luta importante, desarmado 3d6'}},
+Poderoso:{pv:18,pvn:4,es:5,esn:2,per:2,esp:3,est:2,f:{1:'Habilidade Sem Limite: desarmado 1d6, +1 na margem de ameaça com arma e +1d no dano de todas as armas',3:'A Força de um Super: soma FOR ou DES no dano, ataque extra com -2, desarmado 1d8',6:'Golpe Devastador: +5 Luta, Pontaria e dano, desarmado 1d10',12:'Corrente Destrutiva: ataque extra com +5 (e -5 na defesa), +1 margem de ameaça',18:'O Domínio de um Lutador: +20 ES, +5 em testes e dano em luta importante, desarmado 3d6'}},
 'Guardião':{pv:22,pvn:5,es:4,esn:1,per:1,esp:2,est:1,f:{1:'Escudo Impenetrável: soma CON na defesa e na redução de dano',3:'Vitalidade Extra: +2 PV por nível a partir daqui',6:'Olhe para Mim!: reação para receber o ataque no lugar de um aliado',12:'O Pilar: abaixo de metade dos PV ganha defesa e resistência extras',18:'Indestrutível: a 0 PV não desmaia e ganha 1d10 PV e +5 de resistência'}},
 'Metódico':{pv:16,pvn:3,es:10,esn:4,per:3,esp:4,est:3,f:{1:'Dom Hereditário: +1 espaço de poder e poder extra a cada círculo novo',3:'Deveres do Herói: soma INT no efeito dos poderes e na meditação',6:'Herói de Elite: poder derivado com benefício de círculo maior',12:'Potencial Aprimorado: +1 espaço, troca poderes a cada cena, soma INT no ES',18:'Ascensão do Herói: dom vira habilidade de 4º nível'}},
 Protetor:{pv:14,pvn:2,es:12,esn:5,per:4,esp:4,est:4,f:{1:'Aprendiz de Suporte: condição extra por círculo, cura soma SAB, DT +2',3:'Dualidade: carrega ES para curar o dobro ou impor penalidade a inimigos',6:'Pontos Extremos: DT da condição +2x SAB, crítico de cura soma de novo',12:'Retribuição Benevolente: +1d10 nos bônus que dá a aliados, recuperável em ES',18:'Ambivalência: poderes dão resistência ou vulnerabilidade a tipos de dano'}}};
@@ -5212,7 +5212,24 @@ html[data-hubopen] #sinDead,body:has(#menu:not([hidden])) #sinDead{display:none}
 }
 .pvlim{display:block;margin-top:2px;font-size:12px;color:var(--mu)}
 .rdt{display:block;margin-top:4px;font:700 13px "Source Sans 3",sans-serif;color:var(--mu)}
-@media print{#sinBlood,#sinDead{display:none!important}}
+#sinHeal{position:fixed;inset:0;z-index:9000;pointer-events:none;opacity:0;
+ background:radial-gradient(ellipse at center,rgba(34,197,94,.10) 0%,rgba(22,163,74,.36) 58%,rgba(21,128,61,.78) 100%)}
+#sinHeal.go{animation:sinHeal 1.8s ease-out}
+@keyframes sinHeal{0%{opacity:0}22%{opacity:1}100%{opacity:0}}
+/* fade azul com bolhas ao encher o ES */
+#sinMana{position:fixed;inset:0;z-index:9000;pointer-events:none;opacity:0;overflow:hidden;
+ background:radial-gradient(ellipse at center,rgba(56,189,248,.10) 0%,rgba(37,99,235,.36) 58%,rgba(30,64,175,.78) 100%)}
+#sinMana.go{animation:sinMana 2.2s ease-out}
+@keyframes sinMana{0%{opacity:0}22%{opacity:1}100%{opacity:0}}
+#sinMana i{position:absolute;bottom:-60px;left:var(--x);width:var(--s);height:var(--s);opacity:0}
+#sinMana i svg{display:block;width:100%;height:100%;overflow:visible}
+#sinMana.go i{animation:sinFly var(--t) ease-in-out var(--d) both}
+#sinMana.go i svg{animation:sinFlap .26s ease-in-out infinite alternate}
+@keyframes sinFly{0%{transform:translate3d(0,0,0);opacity:0}12%{opacity:1}25%{transform:translate3d(var(--w),-28vh,0)}50%{transform:translate3d(calc(var(--w)*-1),-58vh,0)}75%{transform:translate3d(var(--w),-88vh,0)}100%{transform:translate3d(0,-115vh,0);opacity:0}}
+@keyframes sinFlap{from{transform:scaleX(1)}to{transform:scaleX(.22)}}
+@media(prefers-reduced-motion:reduce){#sinMana i{display:none}}
+html[data-hubopen] #sinHeal,body:has(#menu:not([hidden])) #sinHeal,html[data-hubopen] #sinMana,body:has(#menu:not([hidden])) #sinMana{display:none}
+@media print{#sinBlood,#sinDead,#sinHeal,#sinMana{display:none!important}}
 </style>
 <script>
 /* ===== PV negativo (limite = metade do PV máx.), tela vermelha e morte ===== */
@@ -5222,6 +5239,16 @@ const blood=document.createElement('div');blood.id='sinBlood';blood.setAttribute
 const dead=document.createElement('div');dead.id='sinDead';dead.setAttribute('role','alertdialog');dead.setAttribute('aria-modal','true');dead.setAttribute('aria-labelledby','sdT');
 document.body.append(blood,dead);
 let stage=0,isDead=false,forced=false;
+const heal=document.createElement('div');heal.id='sinHeal';heal.setAttribute('aria-hidden','true');document.body.appendChild(heal);
+heal.addEventListener('animationend',()=>heal.classList.remove('go'));
+let wasMax=null,wasMaxE=null;
+const mana=document.createElement('div');mana.id='sinMana';mana.setAttribute('aria-hidden','true');
+const BFLY='<svg viewBox="0 0 64 64" aria-hidden="true"><g fill="#7dd3fc" stroke="#1e3a8a" stroke-width="1.6" stroke-linejoin="round"><path d="M32 30C20 4 3 8 6 25C8 34 21 36 32 32ZM32 34C23 36 11 42 16 54C21 61 31 50 32 38Z"/><path transform="translate(64 0) scale(-1 1)" d="M32 30C20 4 3 8 6 25C8 34 21 36 32 32ZM32 34C23 36 11 42 16 54C21 61 31 50 32 38Z"/></g><g fill="#fff" opacity=".85"><circle cx="15" cy="20" r="3"/><circle cx="49" cy="20" r="3"/><circle cx="19" cy="46" r="2"/><circle cx="45" cy="46" r="2"/></g><path d="M32 22V48" stroke="#1e3a8a" stroke-width="3" stroke-linecap="round"/><path d="M32 22Q28 12 24 10M32 22Q36 12 40 10" fill="none" stroke="#1e3a8a" stroke-width="1.4" stroke-linecap="round"/></svg>';
+mana.innerHTML=[[6,26,40,2,0],[14,18,-55,1.8,.15],[23,36,50,2.1,.05],[31,22,-40,1.9,.25],[40,30,60,2,.1],[48,16,-45,1.7,.3],[56,38,45,2.1,0],[64,20,-60,1.8,.2],[72,28,40,1.9,.12],[80,40,-50,2.1,.06],[88,22,55,1.8,.22],[94,32,-40,2,.14]].map(([x,s,w,t,d])=>'<i style="--x:'+x+'%;--s:'+s+'px;--w:'+w+'px;--t:'+t+'s;--d:'+d+'s">'+BFLY+'</i>').join('');
+document.body.appendChild(mana);
+mana.addEventListener('animationend',e=>{if(e.target===mana)mana.classList.remove('go')});
+function flashMana(){if(document.documentElement.hasAttribute('data-perf'))return;mana.classList.remove('go');void mana.offsetWidth;mana.classList.add('go')}
+function flashHeal(){if(document.documentElement.hasAttribute('data-perf'))return;heal.classList.remove('go');void heal.offsetWidth;heal.classList.add('go')}
 const lim=()=>Math.max(1,Math.floor((+M.pv||0)/2));
 const cur=()=>{const v=S.pvA===''?M.pv:+S.pvA;return isNaN(v)?M.pv:v};
 const FONT='https://fonts.googleapis.com/css2?family=Cinzel:wght@700;900&family=Cormorant+Garamond:ital,wght@1,400&display=swap';
@@ -5241,6 +5268,13 @@ function vida(){
  const inp=document.getElementById('pvA');
  if(S.pvA!==''&&v<-L){S.pvA=-L;v=-L;if(inp)inp.value=-L;try{save()}catch(e){}}
  if(inp){inp.min=-L;const bx=inp.closest('.box');if(bx&&!bx.querySelector('.pvlim'))bx.insertAdjacentHTML('beforeend','<span class="pvlim">PV pode ficar negativo até −'+L+' (metade do máx.)</span>')}
+ /* campo vazio (ou ainda no automático) nunca conta como "cheio": só vale número digitado/curado */
+ const mx=+M.pv||0;let fh=false,fm=false;
+ if(S.pvA!==''&&inp&&inp.value.trim()!==''){const atMax=mx>0&&v>=mx;fh=wasMax===false&&atMax;wasMax=atMax}
+ if(S.sp)wasMaxE=null;
+ else{const ie=document.getElementById('esA');
+  if(ie&&ie.value.trim()!==''){const mE=+M.es||0,ve=S.esA===''?mE:+S.esA,atE=mE>0&&!isNaN(ve)&&ve>=mE;fm=wasMaxE===false&&atE;wasMaxE=atE}}
+ if(!isDead){if(fh)flashHeal();if(fm){if(fh)setTimeout(flashMana,1700);else flashMana()}}
  if((+S.cai||0)<3)forced=false;
  const p=v<0?Math.min(1,-v/L):0;
  blood.style.opacity=p;
@@ -5263,7 +5297,7 @@ dead.addEventListener('click',e=>{
 });
 /* o Tab não sai da tela de morte */
 dead.addEventListener('keydown',e=>{if(e.key!=='Tab')return;const bs=[...dead.querySelectorAll('button')];if(!bs.length)return;const i=bs.indexOf(document.activeElement);e.preventDefault();bs[(i+(e.shiftKey?-1:1)+bs.length)%bs.length].focus()});
-document.addEventListener('input',e=>{if(e.target&&e.target.id==='pvA')vida()});
+document.addEventListener('input',e=>{if(e.target&&(e.target.id==='pvA'||e.target.id==='esA'))vida()});
 const c3=calc;calc=function(){const r=c3.apply(this,arguments);try{vida()}catch(e){}return r};
 try{vida()}catch(e){}
 })();
