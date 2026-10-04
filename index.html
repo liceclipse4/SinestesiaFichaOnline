@@ -2247,7 +2247,7 @@ async function vCamp(id){
  const ids=ms.map(x=>x.user_id);
  let pf=[];try{pf=ok(await sb.from('perfis').select('user_id,nome,foto,icone,cor').in('user_id',ids))||[]}catch(e){try{pf=ok(await sb.from('perfis').select('user_id,nome,foto').in('user_id',ids))||[]}catch(e2){}}
  NM={};ms.forEach(x=>{const p=pf.find(q=>q.user_id==x.user_id)||(rp&&rp.find(q=>q.user_id==x.user_id))||{};NM[x.user_id]={id:x.user_id,usr:1,nome:p.nome||x.nick||'?',foto:p.foto||'',icone:p.icone,cor:p.cor}});
- if(!CMP||String(CMP.id)!==String(id))APO=false;if(NT.id!=id)NT=nNew(id);CMP={id,m,nome:c.nome};SEEN=new Set();
+ if(!CMP||String(CMP.id)!==String(id))APO=false;if(NT.id!=id)NT=nNew(id);CMP={id,m,nome:c.nome};SEEN=new Set();try{window.__sinPrisReset&&window.__sinPrisReset()}catch(e){}
  AP={capa:c.capa||'',icone:c.icone||ICK[hs(id)%ICK.length],cor:(c.cor!=null&&c.cor!==''&&PAL[+c.cor])?+c.cor:hs(id)%8};PK={obj:AP,paint:paintPrev};
  const cv=cover(AP,id);
  const mine=S.cloud&&S.cloud.cid==id;
@@ -2280,10 +2280,11 @@ function addMsg(m){
  const t=document.createElement('div'),b=document.createElement('b');b.textContent=u.nome;t.append(b,document.createElement('br'));
  if(m.tipo=='dado'){const n=document.createElement('span');n.className='dd';n.textContent=m.texto;t.append('🎲 d20: ',n)}else t.append(document.createTextNode(m.texto));
  d.append(a.firstChild,t);const bot=L.scrollHeight-L.scrollTop-L.clientHeight<80;L.appendChild(d);if(bot)L.scrollTop=L.scrollHeight;
+ try{window.__sinPrisMsg&&window.__sinPrisMsg(m,u.nome)}catch(e){}
 }
 async function loadMsgs(){
  if(!CMP||hub.hidden||V!=='c:'+CMP.id)return;
- try{const r=ok(await sb.from('mensagens').select('id,user_id,tipo,texto').eq('campanha_id',CMP.id).order('id',{ascending:false}).limit(40));(r||[]).reverse().forEach(addMsg)}catch(e){}
+ try{const r=ok(await sb.from('mensagens').select('id,user_id,tipo,texto').eq('campanha_id',CMP.id).order('id',{ascending:false}).limit(40));(r||[]).reverse().forEach(addMsg);try{window.__sinPrisDone&&window.__sinPrisDone()}catch(e){}}catch(e){}
 }
 function startChat(){loadMsgs();nPaint();nLoad();let k=0;POLL=setInterval(()=>{loadMsgs();if(++k%2==0&&!document.hidden)nLoad()},3000)}
 
@@ -5358,6 +5359,116 @@ ov.addEventListener('keydown',e=>{
  else if(e.key==='Tab'){const f=[pb,xb],i=f.indexOf(document.activeElement);e.preventDefault();f[(i+(e.shiftKey?-1:1)+f.length)%f.length].focus()}
 });
 lab();
+})();
+</script>
+<style>
+/* ===== Golpe Prismático: animação ===== */
+#sinPris{position:fixed;inset:0;z-index:9500;pointer-events:none;display:none;overflow:hidden;font-family:"Cinzel","Times New Roman",serif}
+#sinPris.go{display:block}
+#sinPris *{box-sizing:border-box}
+#sinPris .pb{position:absolute;inset:0;background:radial-gradient(ellipse at center,rgba(24,12,56,.38),rgba(4,2,16,.84));opacity:0;animation:prBg 3.6s ease-out both}
+#sinPris .fl{position:absolute;inset:0;background:#fff;opacity:0;animation:prFl 3.6s linear both}
+#sinPris .sl{position:absolute;left:50%;top:50%;width:150vmax;height:var(--h);margin:calc(var(--h)/-2) 0 0 -75vmax;border-radius:99px;background:linear-gradient(90deg,transparent,var(--c) 28%,#fff 50%,var(--c) 72%,transparent);box-shadow:0 0 14px var(--c),0 0 32px var(--c);opacity:0;transform:rotate(var(--r)) scaleX(0);animation:prSl .55s cubic-bezier(.2,.8,.2,1) .05s both}
+#sinPris .sh{position:absolute;inset:0;opacity:0;animation:prSh 2.6s cubic-bezier(.3,.1,.5,1) .6s both}
+#sinPris .ck{position:absolute;inset:0;width:100%;height:100%;filter:drop-shadow(0 0 3px #fff) drop-shadow(0 0 8px #b88cff)}
+#sinPris .ck path{fill:none;stroke:#fff;stroke-width:2.2;stroke-linejoin:round;stroke-dasharray:1;stroke-dashoffset:1;animation:prCk 2.2s ease-out .58s both}
+#sinPris .rg{position:absolute;left:50%;top:50%;width:46vmin;height:46vmin;margin:-23vmin 0 0 -23vmin;border-radius:50%;background:conic-gradient(#ff3b5c,#ffe14d,#3dff8a,#3dd5ff,#5b6bff,#c24bff,#ff3b5c);-webkit-mask:radial-gradient(circle,transparent 56%,#000 58%,#000 68%,transparent 70%);mask:radial-gradient(circle,transparent 56%,#000 58%,#000 68%,transparent 70%);opacity:0;animation:prRg 1.5s cubic-bezier(.1,.7,.2,1) .6s both}
+#sinPris .tt{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:0 3vw;text-align:center;color:#fff;opacity:0;animation:prTt 3.6s ease-out both}
+#sinPris .t1{position:relative;font-weight:900;font-size:clamp(26px,6.6vw,84px);line-height:1.05;text-shadow:0 0 16px #fff,0 0 42px rgba(190,130,255,.95),0 0 90px rgba(80,160,255,.8)}
+#sinPris .t1::before,#sinPris .t1::after{content:attr(data-t);position:absolute;left:0;top:0;width:100%;text-shadow:none;mix-blend-mode:screen;opacity:.9}
+#sinPris .t1::before{color:#00e5ff;animation:prSpA 3.6s ease-out both}
+#sinPris .t1::after{color:#ff2bd6;animation:prSpB 3.6s ease-out both}
+#sinPris .ln{display:block;height:3px;width:min(62vw,560px);border-radius:3px;background:linear-gradient(90deg,transparent,#ff3b5c,#ffe14d,#3dff8a,#3dd5ff,#c24bff,transparent);box-shadow:0 0 14px rgba(255,255,255,.8);transform:scaleX(0);animation:prLn 3.6s ease-out both}
+#sinPris .nm{font-weight:700;font-size:clamp(15px,3vw,28px);letter-spacing:.22em;text-transform:uppercase;text-shadow:0 0 14px rgba(190,130,255,.95);animation:prUp 3.6s ease-out both}
+#sinPris .sb{font-family:"Cormorant Garamond",Georgia,serif;font-style:italic;font-size:clamp(14px,2.4vw,22px);color:rgba(255,255,255,.88);text-shadow:0 0 10px rgba(120,160,255,.9);animation:prUp2 3.6s ease-out both}
+@keyframes prBg{0%{opacity:0}8%{opacity:1}78%{opacity:1}100%{opacity:0}}
+@keyframes prFl{0%,15.5%{opacity:0}17%{opacity:.95}30%,100%{opacity:0}}
+@keyframes prSl{0%{opacity:0;transform:rotate(var(--r)) scaleX(0)}30%{opacity:1;transform:rotate(var(--r)) scaleX(1)}100%{opacity:0;transform:rotate(var(--r)) scaleX(1.1)}}
+@keyframes prSh{0%{opacity:0;transform:none}6%{opacity:1}38%{opacity:1;transform:translate3d(calc(var(--tx)*.12),calc(var(--ty)*.12),0) rotate(calc(var(--rot)*.1))}100%{opacity:0;transform:translate3d(var(--tx),calc(var(--ty) + 34vh),0) rotate(var(--rot))}}
+@keyframes prCk{0%{stroke-dashoffset:1;opacity:1}18%{stroke-dashoffset:0}60%{opacity:1}100%{stroke-dashoffset:0;opacity:0}}
+@keyframes prRg{0%{opacity:1;transform:scale(.1) rotate(0)}100%{opacity:0;transform:scale(3.2) rotate(120deg)}}
+@keyframes prTt{0%,24%{opacity:0;transform:scale(1.55);filter:blur(16px);letter-spacing:.02em}34%{opacity:1;transform:scale(1);filter:blur(0)}84%{opacity:1;transform:scale(1.03);letter-spacing:.1em}100%{opacity:0;transform:scale(1.1);filter:blur(8px);letter-spacing:.12em}}
+@keyframes prSpA{0%,26%{transform:translate(-22px,2px)}42%,100%{transform:translate(-3px,0)}}
+@keyframes prSpB{0%,26%{transform:translate(22px,-2px)}42%,100%{transform:translate(3px,0)}}
+@keyframes prLn{0%,34%{transform:scaleX(0)}46%,100%{transform:scaleX(1)}}
+@keyframes prUp{0%,38%{opacity:0;transform:translateY(12px)}48%,100%{opacity:1;transform:none}}
+@keyframes prUp2{0%,44%{opacity:0;transform:translateY(12px)}54%,100%{opacity:1;transform:none}}
+@keyframes prTtR{0%{opacity:0}15%,80%{opacity:1}100%{opacity:0}}
+@media(prefers-reduced-motion:reduce){
+ #sinPris .sl,#sinPris .ck,#sinPris .sh,#sinPris .rg,#sinPris .fl{display:none}
+ #sinPris .tt{animation-name:prTtR}
+ #sinPris .t1::before,#sinPris .t1::after{display:none}
+ #sinPris .ln,#sinPris .nm,#sinPris .sb{animation:none;opacity:1;transform:none}
+}
+html[data-perf] #sinPris .sl,html[data-perf] #sinPris .ck,html[data-perf] #sinPris .sh,html[data-perf] #sinPris .rg,html[data-perf] #sinPris .fl{display:none}
+html[data-perf] #sinPris .tt{animation-name:prTtR}
+html[data-perf] #sinPris .t1{text-shadow:0 0 12px #b88cff}
+html[data-perf] #sinPris .t1::before,html[data-perf] #sinPris .t1::after{display:none}
+html[data-perf] #sinPris .ln,html[data-perf] #sinPris .nm,html[data-perf] #sinPris .sb{animation:none;opacity:1;transform:none}
+@media print{#sinPris{display:none!important}}
+</style>
+<script>
+/* ===== GOLPE PRISMÁTICO: um jogador rola 20 no d20 e, em seguida, 6 no d6 do dado universal da campanha.
+   Todos na campanha veem (a animação nasce das mensagens do chat, que chegam via ganchos no código da campanha). ===== */
+(function(){
+if(window.__sinPris)return;window.__sinPris=1;
+const R=document.documentElement;
+const root=document.createElement('div');root.id='sinPris';root.setAttribute('aria-hidden','true');document.body.appendChild(root);
+const COL=['#ff3b5c','#ff9f1c','#ffe14d','#3dff8a','#3dd5ff','#5b6bff','#c24bff'];
+const rnd=(a,b)=>a+Math.random()*(b-a);
+let timer=0,ready=false,last={},pend=null,batch=0;
+/* lê uma rolagem do chat: d20 vem como tipo "dado"; os demais dados vêm como texto "🎲 1dN: valor" */
+const rd=m=>{
+ if(m.tipo==='dado'){const v=+m.texto;return isNaN(v)?null:{d:20,v}}
+ const x=/^🎲 1d(\d+): (\d+)$/.exec(String(m.texto||'').trim());
+ return x?{d:+x[1],v:+x[2]}:null;
+};
+function build(){
+ const N=12,rays=[];
+ for(let i=0;i<N;i++)rays.push((i*360/N+rnd(-9,9))*Math.PI/180);
+ const off=rnd(0,25);
+ let h='<div class="pb"></div>';
+ /* as versões do multiverso golpeiam todas ao mesmo tempo: sete cortes de cores do prisma */
+ h+=COL.map((c,i)=>'<i class="sl" style="--r:'+(off+i*180/COL.length).toFixed(1)+'deg;--c:'+c+';--h:'+(i%2?3:5)+'px"></i>').join('');
+ h+='<div class="fl"></div>';
+ /* a tela da realidade quebra em cacos prismáticos */
+ const pt=(a,r)=>(50+Math.cos(a)*r).toFixed(1)+'% '+(50+Math.sin(a)*r).toFixed(1)+'%';
+ for(let i=0;i<N;i++){
+  const a1=rays[i],a2=i===N-1?rays[0]+Math.PI*2:rays[i+1],m=(a1+a2)/2,d=rnd(16,34),hue=Math.round(i*360/N);
+  h+='<div class="sh" style="clip-path:polygon(50% 50%,'+pt(a1,95)+','+pt(a2,95)+');--tx:'+(Math.cos(m)*d).toFixed(1)+'vw;--ty:'+(Math.sin(m)*d).toFixed(1)+'vh;--rot:'+rnd(-22,22).toFixed(1)+'deg;background:linear-gradient('+Math.round(rnd(90,200))+'deg,hsla('+hue+',100%,62%,.62),hsla('+((hue+60)%360)+',100%,72%,.34))"></div>';
+ }
+ h+='<svg class="ck" viewBox="0 0 100 100" preserveAspectRatio="none">'+rays.map(a=>{
+  let d='M50 50',r=0;
+  while(r<95){r+=rnd(10,20);const j=rnd(-.12,.12);d+=' L'+(50+Math.cos(a+j)*r).toFixed(1)+' '+(50+Math.sin(a+j)*r).toFixed(1)}
+  return '<path d="'+d+'" pathLength="1" vector-effect="non-scaling-stroke"/>';
+ }).join('')+'</svg>';
+ h+='<i class="rg"></i><div class="tt"><div class="t1" data-t="GOLPE PRISMÁTICO">GOLPE PRISMÁTICO</div><i class="ln"></i><div class="nm"></div><div class="sb">Todas as versões golpeiam ao mesmo tempo</div></div>';
+ return h;
+}
+function play(nome){
+ clearTimeout(timer);root.classList.remove('go');
+ root.innerHTML=build();
+ root.querySelector('.nm').textContent=nome;
+ void root.offsetWidth;root.classList.add('go');
+ timer=setTimeout(()=>{root.classList.remove('go');root.textContent=''},4000);
+}
+/* ganchos chamados pelo código da campanha */
+/* ao abrir/recarregar a página da campanha: o histórico que vier a seguir não dispara nada */
+window.__sinPrisReset=()=>{ready=false;last={};pend=null;batch=0};
+/* cada mensagem nova do chat: guarda a última rolagem de cada jogador e marca quando fecha 20 (d20) + 6 (d6) */
+window.__sinPrisMsg=(m,nome)=>{
+ batch++;
+ const x=rd(m);if(!x)return;
+ const p=last[m.user_id];
+ if(x.d===6&&x.v===6&&p&&p.d===20&&p.v===20)pend=(nome&&nome!=='?')?nome:'Alguém';
+ last[m.user_id]=x;
+};
+/* fim de cada carga de mensagens: se fechou a sequência com mensagem nova, toca */
+window.__sinPrisDone=()=>{
+ const p=pend;pend=null;
+ if(ready&&p!==null&&batch<=8)play(p);
+ ready=true;batch=0;
+};
 })();
 </script>
 </body>
