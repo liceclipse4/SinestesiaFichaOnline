@@ -411,6 +411,47 @@ html[data-fx=tras] .bg{z-index:0}
 html[data-fx=tras] header .bf,html[data-fx=tras] header .lt{z-index:-1}
 html[data-fx=off] .bg,html[data-fx=off] header .bf,html[data-fx=off] header .lt{display:none!important}
 @media print{.bg,.bf,.lt{display:none}html[data-tema]{--tx:#000;--mu:#444;--ln:#bbb;--ac:#000;--sg:#333;--rd:#b00;--pn:#fff;--pn2:#fff}html[data-tema] body{background:#fff!important}html[data-tema] header{background:#fff!important;box-shadow:none!important}html[data-tema] h1{background:none!important;color:#000!important;-webkit-text-fill-color:#000!important}html[data-tema] section,html[data-tema] .card,html[data-tema] .box,html[data-tema] input,html[data-tema] select,html[data-tema] textarea{background:#fff!important}html[data-tema] .note,html[data-tema] header p{color:#333!important}header{background:#fff}h1{background:none;color:#000;-webkit-text-fill-color:#000}section{border-top-color:#999;box-shadow:none}body{background:#fff;color:#000}header .bar,.noprint{display:none}section,.box,.card,.sk div{background:#fff;border-color:#999}input,select,textarea{background:#fff;color:#000;border-color:#bbb}.box b,.sk strong,.f b{color:#000}#pimg{border-color:#999}}
+#mesaSec .mtabs button {
+  font-size: 12px !important;
+  padding: 6px 10px !important;
+}
+#mesaSec .mhd .mtabs {
+  overflow-x: auto !important;
+  display: flex !important;
+  flex-wrap: nowrap !important;
+  white-space: nowrap !important;
+}
+#mesaSec .mtabs {
+  display: flex !important;
+  flex-wrap: nowrap !important;
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+  white-space: nowrap !important;
+  gap: 6px !important;
+  padding-bottom: 6px !important;
+  -webkit-overflow-scrolling: touch !important;
+  scrollbar-width: thin !important;
+}
+
+/* Deixa a barra de rolagem visível e estilizada nas abas */
+#mesaSec .mtabs::-webkit-scrollbar {
+  height: 6px !important;
+  display: block !important;
+}
+#mesaSec .mtabs::-webkit-scrollbar-track {
+  background: rgba(127, 127, 127, 0.15) !important;
+  border-radius: 99px !important;
+}
+#mesaSec .mtabs::-webkit-scrollbar-thumb {
+  background: var(--ac, #7c3aed) !important;
+  border-radius: 99px !important;
+}
+
+#mesaSec .mtabs button {
+  flex: 0 0 auto !important;
+  font-size: 13px !important;
+  padding: 6px 14px !important;
+}
 </style>
 <style id="sin-leve">
 /* modo leve: celular / toque. Para animações de enfeite e tira blur pesado */
@@ -418,6 +459,14 @@ html[data-fx=off] .bg,html[data-fx=off] header .bf,html[data-fx=off] header .lt{
  *,*::before,*::after{animation-duration:.001s!important;animation-delay:0s!important;animation-iteration-count:1!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
  #mfx::after,.idz .via,.idg1,.bf{filter:none!important}
 }
+button, select, input, textarea, summary, [role="button"], [role="tab"], [role="menuitem"] {
+  -webkit-tap-highlight-color: transparent !important;
+}
+
+:focus, :focus-visible {
+  outline: none !important;
+}
+
 </style>
 
 <style id="sin-extra">
@@ -3593,7 +3642,7 @@ const css=`
 #mesaSec{grid-column:1/-1}
 #mesaSec .mtools,#mesaSec .mg{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 #mesaSec .mtools{margin-bottom:10px}
-#mesaSec .mst{font-size:13px;color:var(--mu);margin-left:auto}
+#mesaSec .mst{font-size:13px;color:var(--mu);margin-left:auto;height:auto;animation:none}
 #mesaSec .mlay{display:flex;flex-wrap:wrap;gap:14px;align-items:flex-start;justify-content:center}
 #mesaSec .mwrap{flex:1 1 420px;min-width:0;max-width:var(--mw,820px)}
 #mesaSec .mscale{display:inline-flex;align-items:center;gap:8px;font-size:14px;padding:2px 6px}
@@ -3830,7 +3879,7 @@ function removeTok(t){
 function setStat(){const e=sec&&sec.querySelector('.mst');if(e)e.textContent=ST.stat||''}
 function queue(){
  if(!canMove())return;if(!ST.master)ST.dirty=1;if(ST.master&&ST.prep){ST.pdirty=1;try{dispatchEvent(new Event('sin-prep'))}catch(_){}}
- ST.stat='Salvando…';setStat();clearTimeout(svT);svT=setTimeout(flush,350);libSched();
+ ST.stat='Salvando…';setStat();clearTimeout(svT);svT=setTimeout(flush,120);libSched();
 }
 async function flush(){
  const me=ST,s=sbc();if(!me||!s)return;
@@ -3894,7 +3943,19 @@ async function load(){
   }
  }catch(e){me.err=String(e.message||e);if(ST===me)paintAll()}
 }
-setInterval(()=>{if(ST&&ST.open&&!ST.master&&sec&&sec.isConnected&&!document.hidden&&!hub.hidden)load()},2500);
+/* TEMPO REAL: o jogador assina as mudancas da linha da campanha (Supabase Realtime) e recarrega na hora.
+   Se o Realtime nao estiver ativo na tabela, o polling abaixo continua funcionando (1,5 s). */
+let rtCh=null,rtCid=null,rtOk=false,rtT=0,rtN=0;
+function rtSync(){
+ const s=sbc();if(!s||!s.channel)return;
+ const want=(ST&&ST.open&&!ST.master&&ST.cid!=null)?String(ST.cid):null;
+ if(want===rtCid)return;
+ if(rtCh){try{s.removeChannel(rtCh)}catch(_){}rtCh=null}
+ rtOk=false;rtCid=want;if(!want)return;
+ try{rtCh=s.channel('mesa-'+want).on('postgres_changes',{event:'UPDATE',schema:'public',table:'campanhas',filter:'id=eq.'+want},()=>{clearTimeout(rtT);rtT=setTimeout(()=>{if(ST&&ST.open&&!ST.master&&!document.hidden)load()},20)}).subscribe(st=>{rtOk=(st==='SUBSCRIBED')})}catch(_){rtCh=null}
+}
+setInterval(rtSync,1000);
+setInterval(()=>{rtN++;if(rtOk?(rtN%12):(rtN%3))return;if(ST&&ST.open&&!ST.master&&sec&&sec.isConnected&&!document.hidden&&!hub.hidden)load()},500);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&ST&&ST.open&&!ST.master)load()});
 
 /* ---------- desenho ---------- */
@@ -8649,6 +8710,10 @@ const st=document.createElement('style');st.textContent=`
 #mesaSec .mhd{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:8px}
 #mesaSec .mhd [data-m=next]{flex:none;padding:10px 18px;border-radius:999px;font-weight:800;font-size:14px;background:linear-gradient(135deg,#7c3aed,#4c7dff)!important;color:#fff!important;border:0!important}
 #mesaSec .mtabs{display:flex;gap:4px;flex:1;min-width:0;overflow-x:auto;scrollbar-width:none}
+#mesaSec{min-width:0;max-width:100%;box-sizing:border-box}
+#mesaSec .mtools{min-width:0;max-width:100%;box-sizing:border-box}
+#mesaSec .mhd{min-width:0}
+#mesaSec .mhd .mtabs{flex:1 1 100%;order:3;padding-bottom:2px}
 #mesaSec .mtabs button{flex:none;padding:7px 13px;border-radius:999px;font-size:13px;white-space:nowrap;background:transparent!important;border:1px solid transparent!important;box-shadow:none!important;color:var(--mu)}
 #mesaSec .mtabs button[aria-selected=true]{background:var(--pn2)!important;border-color:var(--ac)!important;color:var(--tx)}
 #mesaSec .mtip{margin:0 0 10px;font-size:12.5px;color:var(--mu)}
@@ -9222,5 +9287,198 @@ ensure();
 })();
 </script>
 
+
+<script>
+/* ===== Mesa em TELA CHEIA =====
+   Módulo independente: só acrescenta classes/CSS por cima da Mesa existente (#mesaSec).
+   Nenhuma função da Mesa foi alterada: arrastar, régua, névoa, paredes, luz, turnos,
+   biblioteca, personagens, simbiose, zoom, editor de ícones, mapas e RPG continuam os mesmos.
+   Botões de entrada: "⛶ Tela cheia" na barra do topo e "⛶" ao lado do zoom da mesa. */
+(function(){
+if(window.__sinMesaFS)return;window.__sinMesaFS=1;
+const hub=document.getElementById('hub');if(!hub)return;
+const root=document.documentElement,API=()=>window.__sinMesaAPI;
+const $=(s,r)=>(r||document).querySelector(s);
+const secEl=()=>document.getElementById('mesaSec');
+
+const css=document.createElement('style');css.textContent=`
+#mesaFsBtn[hidden],#mxfBar[hidden]{display:none!important}
+#mesaSec .mzbar [data-xf]{font-weight:800}
+
+/* 1) ancestrais com filtro/transform/animação (temas) quebrariam o position:fixed: neutraliza só durante a tela cheia */
+html.mxf-on #hub{overflow:hidden!important}
+html.mxf-on #hub main,html.mxf-on #hub header{filter:none!important;transform:none!important;animation:none!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;perspective:none!important;contain:none!important;will-change:auto!important;translate:none!important;scale:none!important;rotate:none!important}
+html.mxf-on #sinDock,html.mxf-on .rain,html.mxf-on #mfx{display:none!important}
+/* camadas de tema (Trevas/Luz etc.) ficavam POR CIMA da mesa (z-index 135 > 120 do hub): somem na tela cheia */
+html.mxf-on body>:is(.tzt,.tzl,.tzm,.cor,.bg){display:none!important}
+
+/* 2) a Mesa ocupa a tela inteira */
+#mesaSec.mxf{position:fixed!important;inset:0!important;z-index:450;box-sizing:border-box;margin:0!important;padding:0 0 0 58px!important;width:auto!important;max-width:none!important;height:auto!important;border:0!important;border-radius:0!important;box-shadow:none!important;transform:none!important;animation:none!important;backdrop-filter:none!important;background:var(--pn2,#f4efff)!important;color:var(--tx,#2a2350);display:grid;grid-template-columns:minmax(0,1fr);align-content:start;overflow-x:hidden;overflow-y:auto;overscroll-behavior:contain}
+#mesaSec.mxf::before,#mesaSec.mxf::after{display:none!important}
+#mesaSec.mxf>h2{display:none}
+#mesaSec.mxf>.mlay{grid-column:1;grid-row:1/span 60;position:sticky;top:0;height:100vh;height:100dvh;align-self:start;box-sizing:border-box;display:flex;flex-wrap:nowrap;align-items:center;justify-content:center;gap:12px;padding:10px;min-width:0;background:color-mix(in srgb,var(--tx,#2a2350) 14%,var(--pn2,#f4efff))}
+#mesaSec.mxf .mwrap{flex:0 0 auto;width:var(--mxw,100%);max-width:none;min-width:0}
+#mesaSec.mxf .mturn{flex:0 0 250px;align-self:stretch;max-height:100%;overflow:auto;box-sizing:border-box;min-width:0}
+#mesaSec.mxf .mturn ol{max-height:none;overflow:visible}
+#mesaSec.mxf:not(.mxt) .mturn{display:none}
+#mesaSec.mxf .mscale:has(#mwd){display:none}
+
+/* 3) ferramentas (abas, editor, biblioteca, mapas…) numa coluna lateral que abre/fecha */
+#mesaSec.mxf:not(.mxd)>:not(.mlay):not(.mst){display:none!important}
+#mesaSec.mxf.mxd{grid-template-columns:minmax(0,1fr) min(430px,40vw)}
+#mesaSec.mxf.mxd>:not(.mlay):not(.mst):not(h2){grid-column:2;min-width:0;margin:10px 12px 0 8px}
+#mesaSec.mxf.mxd>:not(.mlay):not(.mst):last-child{margin-bottom:16px}
+#mesaSec.mxf>.mmsg:empty,#mesaSec.mxf>.msymw:empty,#mesaSec.mxf>.mplw:empty,#mesaSec.mxf>.mlibw:empty,#mesaSec.mxf>.medw:empty{display:none!important}
+#mesaSec.mxf>.mst{position:fixed;left:70px;bottom:10px;top:auto;right:auto;height:auto;animation:none;z-index:5;margin:0!important;padding:3px 11px;border-radius:99px;background:rgba(0,0,0,.74);color:#fff!important;font-size:12px!important;max-width:50vw;pointer-events:none}
+#mesaSec.mxf>.mst:empty{display:none}
+
+/* 4) barra flutuante */
+#mxfBar{position:fixed;z-index:460;left:0;top:0;bottom:0;width:58px;box-sizing:border-box;display:flex;flex-direction:column;gap:6px;padding:8px 5px;background:rgba(9,11,18,.97);border-right:1px solid rgba(255,255,255,.14)}
+#mxfBar button{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;min-width:0;min-height:50px;padding:4px 1px;margin:0;border-radius:12px;border:1px solid rgba(255,255,255,.18)!important;background:rgba(255,255,255,.08)!important;color:#fff!important;font:700 10px/1.1 "Bricolage Grotesque",system-ui,sans-serif;cursor:pointer;box-shadow:none!important;-webkit-tap-highlight-color:transparent}
+#mxfBar button[hidden]{display:none!important}
+#mxfBar button i{font-style:normal;font-size:19px;line-height:1}
+#mxfBar button:hover{background:rgba(255,255,255,.18)!important}
+#mxfBar button[aria-pressed=true]{background:linear-gradient(135deg,#7c3aed,#4c7dff)!important;border-color:transparent!important}
+#mxfBar [data-xf=exit]{margin-top:auto;background:#c0182b!important;border-color:transparent!important}
+#mxfBar button.al i{animation:mxfpulse 1.1s ease-in-out infinite}
+@keyframes mxfpulse{50%{transform:scale(1.35)}}
+@media(prefers-reduced-motion:reduce){#mxfBar button.al i{animation:none}}
+
+/* 5) "Meu personagem" e RPG viram painéis flutuantes */
+html.mxf-on #mesaMe,html.mxf-on #rpgSec{display:none!important}
+html.mxf-on.mxf-me #mesaMe,html.mxf-on.mxf-rpg #rpgSec{display:block!important;position:fixed!important;z-index:470;top:10px;bottom:10px;right:10px;left:auto!important;width:min(480px,calc(100vw - 80px))!important;max-width:none!important;margin:0!important;overflow:auto;box-sizing:border-box;border-radius:14px!important;box-shadow:0 14px 44px rgba(0,0,0,.55)!important;transform:none!important;animation:none!important;background:var(--pn2,#f4efff)!important}
+
+/* 6) telas estreitas: barra no topo, mesa em cima e ferramentas rolando por baixo */
+@media(max-width:820px){
+ #mxfBar{right:0;bottom:auto;width:auto;height:50px;flex-direction:row;padding:5px 8px;border-right:0;border-bottom:1px solid rgba(255,255,255,.14)}
+ #mxfBar button{flex:1;min-height:0;flex-direction:row;gap:5px;font-size:11px}
+ #mxfBar button span{display:none}
+ #mxfBar [data-xf=exit]{margin:0 0 0 auto;flex:none;padding:4px 14px}
+ #mesaSec.mxf{display:flex;flex-direction:column;padding:50px 0 0!important}
+ #mesaSec.mxf>.mlay{order:-1;flex:none;top:50px;height:calc(100vh - 50px);height:calc(100dvh - 50px);padding:6px}
+ #mesaSec.mxf.mxd>.mlay{height:60vh;height:60dvh;z-index:6}
+ #mesaSec.mxf.mxd>:not(.mlay):not(.mst):not(h2){margin:10px 10px 0}
+ #mesaSec.mxf>.mst{left:10px;bottom:6px}
+ #mesaSec.mxf .mturn{position:absolute;z-index:12;top:6px;bottom:6px;right:6px;width:min(250px,70vw);flex:none;background:var(--pn2,#f4efff);box-shadow:0 8px 28px rgba(0,0,0,.5)}
+ html.mxf-on.mxf-me #mesaMe,html.mxf-on.mxf-rpg #rpgSec{top:58px;left:8px!important;right:8px;bottom:8px;width:auto!important}
+}
+/* anti-quadrado-preto: na tela cheia nada usa desfoque/filtro de fundo nem transição nos botões (evita falha de composição da GPU) */
+html.mxf-on *,html.mxf-on *::before,html.mxf-on *::after{-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
+html.mxf-on #mesaSec button,html.mxf-on #mxfBar button{transition:none!important;will-change:auto!important;filter:none!important;-webkit-tap-highlight-color:transparent}
+@media print{#mxfBar,#mesaFsBtn{display:none!important}}
+`;document.head.appendChild(css);
+
+/* ---------- barra ---------- */
+const bar=document.createElement('nav');bar.id='mxfBar';bar.hidden=true;bar.setAttribute('aria-label','Controles da tela cheia');
+bar.innerHTML='<button type="button" data-xf="tools" aria-pressed="false" title="Ferramentas da mesa (abas, editor de ícones, biblioteca, mapas…)"><i>☰</i><span>Ferram.</span></button>'
+ +'<button type="button" data-xf="turn" aria-pressed="false" title="Ordem de turnos"><i>⚔</i><span>Turnos</span></button>'
+ +'<button type="button" data-xf="me" aria-pressed="false" title="Meu personagem" hidden><i>🧙</i><span>Ficha</span></button>'
+ +'<button type="button" data-xf="rpg" aria-pressed="false" title="RPG: rolagens e registro" hidden><i>🎲</i><span>RPG</span></button>'
+ +'<button type="button" data-xf="exit" title="Sair da tela cheia (Esc)"><i>✕</i><span>Sair</span></button>';
+document.body.appendChild(bar);
+const bt=k=>bar.querySelector('[data-xf='+k+']');
+
+/* ---------- estado ---------- */
+let on=false,drawer=false,turn=null,panel='',apiFs=false,fq=0,lastW=0,mo=null,ro=null;
+const turnOn=()=>turn==null?innerWidth>=1100:turn;
+
+function apply(){
+ const s=secEl();
+ root.classList.toggle('mxf-on',on);
+ root.classList.toggle('mxf-me',on&&panel==='me');
+ root.classList.toggle('mxf-rpg',on&&panel==='rpg');
+ bar.hidden=!on;
+ if(s){s.classList.toggle('mxf',on);s.classList.toggle('mxd',on&&drawer);s.classList.toggle('mxt',on&&turnOn())}
+ if(!on)return;
+ bt('tools').setAttribute('aria-pressed',drawer);
+ bt('turn').setAttribute('aria-pressed',turnOn());
+ bt('me').hidden=!document.getElementById('mesaMe');bt('me').setAttribute('aria-pressed',panel==='me');
+ bt('rpg').hidden=!(document.getElementById('rpgSec')||document.getElementById('rpgBtn'));bt('rpg').setAttribute('aria-pressed',panel==='rpg');
+ const m=s&&s.querySelector(':scope>.mmsg');bt('tools').classList.toggle('al',!!(m&&m.textContent.trim()&&!drawer));
+ scheduleFit();
+}
+
+/* ---------- tamanho: a mesa cresce até caber inteira na tela, mantendo a proporção ---------- */
+function scheduleFit(){if(fq)return;fq=requestAnimationFrame(()=>{fq=0;fit()})}
+function fit(){
+ const s=secEl();if(!on||!s||!s.isConnected)return;
+ const lay=s.querySelector(':scope>.mlay'),wrap=lay&&lay.querySelector('.mwrap');if(!wrap)return;
+ const cs=getComputedStyle(lay),px=v=>parseFloat(v)||0;
+ const aw=lay.clientWidth-px(cs.paddingLeft)-px(cs.paddingRight),ah=lay.clientHeight-px(cs.paddingTop)-px(cs.paddingBottom);
+ const zb=wrap.querySelector('.mzbar'),zh=zb?zb.offsetHeight+px(getComputedStyle(zb).marginBottom):0;
+ const tn=lay.querySelector('.mturn'),tc=tn&&getComputedStyle(tn);
+ const tw=(tn&&tc.display!=='none'&&tc.position!=='absolute')?tn.offsetWidth+px(cs.columnGap):0;
+ const a=API(),ar=(a&&a.ar&&a.ar())||.75;
+ const w=Math.max(160,Math.floor(Math.min(aw-tw,(ah-zh-2)/ar)));
+ if(w!==lastW){lastW=w;s.style.setProperty('--mxw',w+'px')}
+}
+
+/* ---------- entrar / sair ---------- */
+async function enter(){
+ const s=secEl(),a=API(),st=a&&a.st&&a.st();
+ if(on||!s||!st||!st.open)return;
+ on=true;lastW=0;apply();
+ mo=new MutationObserver(scheduleFit);mo.observe(s,{childList:true,attributes:true,attributeFilter:['style']});
+ if(window.ResizeObserver){ro=new ResizeObserver(scheduleFit);ro.observe(s)}
+ const rq=root.requestFullscreen||root.webkitRequestFullscreen;
+ if(rq&&!document.fullscreenElement&&!document.webkitFullscreenElement){
+  try{const r=rq.call(root,{navigationUI:'hide'});if(r&&r.then)await r;apiFs=true}catch(_){apiFs=false}
+ }
+ scheduleFit();
+}
+function exit(){
+ if(!on)return;
+ on=false;panel='';
+ const was=apiFs;apiFs=false;
+ if(mo){mo.disconnect();mo=null}if(ro){ro.disconnect();ro=null}
+ apply();
+ if(was&&(document.fullscreenElement||document.webkitFullscreenElement)){try{(document.exitFullscreen||document.webkitExitFullscreen).call(document)}catch(_){}}
+ const s=secEl();if(s){s.style.removeProperty('--mxw');try{s.scrollIntoView({block:'start'})}catch(_){}}
+ lastW=0;
+}
+function onFsChange(){if(on&&apiFs&&!document.fullscreenElement&&!document.webkitFullscreenElement)exit();else scheduleFit()}
+document.addEventListener('fullscreenchange',onFsChange);document.addEventListener('webkitfullscreenchange',onFsChange);
+addEventListener('resize',scheduleFit);addEventListener('orientationchange',()=>setTimeout(scheduleFit,250));
+
+/* ---------- cliques ---------- */
+document.addEventListener('click',e=>{
+ const b=e.target.closest&&e.target.closest('[data-xf]');if(!b)return;
+ const k=b.dataset.xf;
+ if(k==='toggle'){on?exit():enter();return}
+ if(k==='exit'){exit();return}
+ if(k==='tools'){drawer=!drawer;apply();return}
+ if(k==='turn'){turn=!turnOn();apply();return}
+ if(k==='me'){panel=panel==='me'?'':'me';apply();return}
+ if(k==='rpg'){
+  if(panel==='rpg'){panel=''}
+  else{if(!document.getElementById('rpgSec')){const rb=document.getElementById('rpgBtn');if(rb)rb.click()}panel='rpg'}
+  apply();
+ }
+});
+/* Esc: o navegador já sai da tela cheia nativa; aqui cobre o modo sem API (ex.: iPhone) */
+addEventListener('keydown',e=>{
+ if(!on||e.key!=='Escape'||e.defaultPrevented||document.fullscreenElement||document.webkitFullscreenElement)return;
+ if(document.querySelector('[role=dialog],#mmZ:not([hidden])'))return;
+ const a=API(),st=a&&a.st&&a.st();if(st&&st.rl&&st.rl.on&&st.rl.src)return;
+ if(panel){panel='';apply();return}
+ exit();
+});
+
+/* ---------- botões de entrada + vigia ---------- */
+function inject(){
+ const mb=document.getElementById('mesaBtn');let fb=document.getElementById('mesaFsBtn');
+ if(mb&&!fb){fb=document.createElement('button');fb.type='button';fb.id='mesaFsBtn';fb.className='noprint';fb.dataset.xf='toggle';fb.textContent='⛶ Tela cheia';fb.title='Mesa em tela cheia (Esc sai)';mb.after(fb)}
+ const a=API(),st=a&&a.st&&a.st(),s=secEl(),ok=!!(st&&st.open&&s&&s.isConnected);
+ if(fb)fb.hidden=!ok;
+ const z=$('.mzbar',s||document);
+ if(z&&!z.querySelector('[data-xf]')){const b=document.createElement('button');b.type='button';b.dataset.xf='toggle';b.textContent='⛶';b.title='Tela cheia';b.setAttribute('aria-label','Mesa em tela cheia');z.appendChild(b)}
+ if(on){if(!ok)exit();else{if(s&&!s.classList.contains('mxf'))apply();else{const m=s.querySelector(':scope>.mmsg');bt('tools').classList.toggle('al',!!(m&&m.textContent.trim()&&!drawer));bt('me').hidden=!document.getElementById('mesaMe');bt('rpg').hidden=!(document.getElementById('rpgSec')||document.getElementById('rpgBtn'));scheduleFit()}}}
+}
+let iq=0;const sched=()=>{if(iq)return;iq=requestAnimationFrame(()=>{iq=0;try{inject()}catch(_){}})};
+new MutationObserver(sched).observe(hub,{childList:true,subtree:true});
+addEventListener('hashchange',()=>setTimeout(sched,60));
+inject();
+})();
+</script>
 </body>
 </html>
