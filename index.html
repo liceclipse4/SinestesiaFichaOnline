@@ -5543,7 +5543,15 @@ const sbc=()=>window.__sb,find=id=>V&&V.l.find(v=>v.i===id);
 /* ---------- salvar / carregar ---------- */
 function stat(){const e=sec&&sec.querySelector('.vst');if(e)e.textContent=V.stat||''}
 function queue(){V.stat='Salvando…';stat();clearTimeout(svT);svT=setTimeout(flush,500)}
+/* cada vilão feito na campanha também fica salvo no menu "Vilões" (neste aparelho) */
+function libSync(keep){
+ const lib=window.__sinVilLib,me=V;if(!lib||!lib.upsertMany||!me||!me.loaded)return;
+ const h=hub.querySelector('header h1'),t=h&&h.textContent.trim();if(t)me.nm=t.slice(0,60);
+ const nm=me.nm||'Campanha';
+ try{lib.upsertMany(me.l.map(v=>Object.assign({},v,{oc:me.cid,oi:v.i,on:nm})),keep)}catch(e){}
+}
 async function flush(){
+ libSync(false);
  const me=V,s=sbc();if(!me||!s||!me.loaded)return;
  try{
   const r=await s.from('campanhas').update({viloes:JSON.stringify({v:1,l:me.l})}).eq('id',me.cid).select('id');
@@ -5562,7 +5570,7 @@ async function load(){
   if(V!==me)return;
   let raw=r.data&&r.data.viloes,o=null;
   if(typeof raw==='string'&&raw){try{o=JSON.parse(raw)}catch(e){}}else if(raw&&typeof raw==='object')o=raw;
-  me.l=o&&Array.isArray(o.l)?o.l.slice(0,MAXV).map(nv):[];me.loaded=true;me.err='';paintAll();
+  me.l=o&&Array.isArray(o.l)?o.l.slice(0,MAXV).map(nv):[];me.loaded=true;me.err='';paintAll();if(V===me)libSync(true);
  }catch(e){me.err=String(e.message||e);me.loaded=false;if(V===me)paintAll()}
 }
 function paintErr(){
@@ -8593,7 +8601,7 @@ if(window.__sinVilLib)return;
 const K='sin-viloes-lib',hub=document.getElementById('hub');
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const PAL=['#e11d2e','#f97316','#facc15','#22c55e','#06b6d4','#2563eb','#8b5cf6','#ec4899','#f8fafc','#111827','#92400e','#94a3b8'];
-const AT=['FOR','DES','CON','INT','SAB','CAR'],TP=['Lacaio','Capanga','Elite','Chefe','Chefão'],SZN=['P','M','G','GG'],MAXV=60;
+const AT=['FOR','DES','CON','INT','SAB','CAR'],TP=['Lacaio','Capanga','Elite','Chefe','Chefão'],SZN=['P','M','G','GG'],MAXV=150;
 const IMR=/^data:image\/(?:jpeg|png|webp);base64,[A-Za-z0-9+\/=]+$/;
 const clamp=(v,a,b)=>Math.min(b,Math.max(a,v));
 const num=(v,d)=>{v=parseFloat(String(v).replace(',','.'));return Number.isFinite(v)?v:d};
@@ -8618,13 +8626,33 @@ const nv=o=>{o=o||{};
   at:AT.reduce((r,a)=>(r[a]=clamp(I(o.at&&o.at[a],0),-20,30),r),{}),
   ak,hb:(Array.isArray(o.hb)?o.hb:[]).slice(0,12).map(nh),
   pr:String(o.pr||'').slice(0,300),nt:String(o.nt||'').slice(0,1500),
-  s:[0,1,2,3].includes(o.s)?o.s:1,im:IMR.test(o.im||'')?o.im:''};
+  s:[0,1,2,3].includes(o.s)?o.s:1,im:IMR.test(o.im||'')?o.im:'',
+  oc:String(o.oc||'').replace(/[^\w-]/g,'').slice(0,40),oi:String(o.oi||'').replace(/[^\w-]/g,'').slice(0,40),on:String(o.on||'').slice(0,60)};
  syncLegacy(v);return v};
 let L=[];try{L=(JSON.parse(localStorage.getItem(K))||[]).map(nv)}catch(e){}
-let CUR=null;
-const save=()=>{try{localStorage.setItem(K,JSON.stringify(L))}catch(e){}};
+let CUR=null,FILT='';
+const save=()=>{try{localStorage.setItem(K,JSON.stringify(L));return true}catch(e){return false}};
 if(L.length)save();
-window.__sinVilLib={list:()=>L,save,add(o){const v=nv(Object.assign({},o,{pvm:o.pv}));L.unshift(v);save();return v}};
+/* espelha os vilões criados dentro de uma campanha (oc = campanha, oi = vilão dela) */
+function upsertMany(arr,keep){
+ let ch=false;
+ (arr||[]).forEach(o=>{
+  if(!o||!o.oc||!o.oi)return;
+  const ex=L.find(x=>x.oc===o.oc&&x.oi===o.oi);
+  if(ex){
+   if(keep){if(o.on&&ex.on!==o.on){ex.on=String(o.on).slice(0,60);ch=true}return}
+   const n=nv(Object.assign({},o,{i:ex.i}));
+   if(JSON.stringify(n)!==JSON.stringify(ex)){L[L.indexOf(ex)]=n;ch=true}
+  }else{
+   if(L.length>=MAXV)return;
+   L.unshift(nv(Object.assign({},o,{i:''})));ch=true;
+  }
+ });
+ if(ch&&!save()){/* sem espaço no aparelho: tira as imagens dos vilões espelhados e tenta de novo */
+  L.forEach(x=>{if(x.oc)x.im=''});save()}
+ return ch;
+}
+window.__sinVilLib={list:()=>L,save,upsertMany,add(o){const v=nv(Object.assign({},o,{pvm:o.pv}));L.unshift(v);save();return v}};
 
 /* ---------- CSS ---------- */
 {const c=document.createElement('style');c.textContent=`
@@ -8656,6 +8684,7 @@ window.__sinVilLib={list:()=>L,save,add(o){const v=nv(Object.assign({},o,{pvm:o.
 #hub .vms-sws{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
 #hub .vms-sw{width:30px;height:30px;min-width:0;padding:0;border-radius:50%;background:var(--sw)!important;border:3px solid #fff;box-shadow:0 0 0 2px #000;font-size:0}
 #hub .vms-sw[aria-pressed=true]{outline:3px solid var(--tx);outline-offset:3px}
+#hub .vms-flt{margin-top:10px;gap:6px;flex-wrap:wrap}#hub .vms-flt button{padding:5px 12px;font-size:13px;border-radius:99px}#hub .vms-flt button[aria-pressed=true]{background:var(--ac)!important;color:#000!important;border-color:var(--ac)!important}
 #hub .vms-bar{display:grid;gap:6px;margin-bottom:14px}
 #hub .vms-bl{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 #hub .vms-bl input{width:84px;min-width:0;text-align:center;font-weight:700}
@@ -8675,14 +8704,23 @@ const phStyle=v=>v.im?' style="background-image:url(\''+v.im+'\')"':'';
 const card=v=>'<article class="vms-card'+(v.pv<=0?' dead':'')+'" data-i="'+esc(v.i)+'" style="--c:'+esc(v.c)+'">'
  +'<div class="vms-open" role="button" tabindex="0" data-vm="open" aria-label="Abrir a ficha de '+esc(v.n||'vilão')+'">'
  +'<span class="vms-ph"'+phStyle(v)+'>'+(v.im?'':esc(ini(v.n)))+'</span>'
- +'<span class="vms-nm">'+esc(v.n||'Sem nome')+'</span><span class="vms-sub">'+esc(v.tp)+' · Nível '+v.lv+'</span>'
+ +'<span class="vms-nm">'+esc(v.n||'Sem nome')+'</span><span class="vms-sub">'+esc(v.tp)+' · Nível '+v.lv+(v.on?' · 📜 '+esc(v.on):'')+'</span>'
  +'<span class="vms-chips"><i>PV '+v.pv+'/'+v.pvm+'</i><i>DEF '+v.df+'</i><i>ESQ '+v.esq+'</i></span>'
  +'<span class="vms-trk"><u class="'+(pct(v.pv,v.pvm)<=25?'lo':'')+'" style="width:'+pct(v.pv,v.pvm)+'%"></u></span></div>'
  +'<div class="vms-ca"><button type="button" data-vm="dup">⧉ Duplicar</button><button type="button" data-vm="del" aria-label="Excluir">🗑</button></div></article>';
 function tabsFn(){return '<div class="nb">'+[['fichas','Fichas'],['camps','Campanhas'],['viloes','Vilões'],['perfil','Perfil']].map(([k,t])=>'<button type="button" data-go="'+k+'" aria-pressed="'+(k=='viloes')+'">'+t+'</button>').join('')+'<button type="button" data-a="x" aria-label="Fechar" style="margin-left:auto">✕</button></div>'}
+const camps=()=>{const m=new Map();L.forEach(v=>{if(v.oc&&!m.has(v.oc))m.set(v.oc,v.on||'Campanha')});return[...m]};
+function fltBar(){
+ const cs=camps(),av=L.some(v=>!v.oc);
+ if(!cs.length)return'';
+ if(FILT&&FILT!=='-'&&!cs.some(c=>c[0]===FILT))FILT='';
+ const b=(k,t)=>'<button type="button" data-vflt="'+esc(k)+'" aria-pressed="'+(FILT===k)+'">'+esc(t)+'</button>';
+ return'<div class="bar vms-flt noprint" role="group" aria-label="Filtrar por campanha">'+b('','Todos ('+L.length+')')+cs.map(c=>b(c[0],'📜 '+c[1]+' ('+L.filter(v=>v.oc===c[0]).length+')')).join('')+(av?b('-','Avulsos ('+L.filter(v=>!v.oc).length+')'):'')+'</div>';
+}
 function listPage(){
+ const LV=FILT==='-'?L.filter(v=>!v.oc):FILT?L.filter(v=>v.oc===FILT):L;
  return '<div class="mw cpx vms">'+tabsFn()+'<div class="cpx-hero"><div class="cpx-t"><span class="cpx-k">SINESTESIA · VILÕES</span><h1>Vilões</h1><p>Cada vilão tem a própria ficha completa. Ficam salvos neste aparelho e aparecem no RPG de texto da campanha.</p></div></div>'
- +'<section class="full"><div class="bar"><button type="button" data-vm="new"'+(L.length>=MAXV?' disabled':'')+'>＋ Novo vilão</button></div><div id="vlist" class="vms-grid">'+(L.length?L.map(card).join(''):'<p class="note">Nenhum vilão ainda. Crie o primeiro.</p>')+'</div></section></div>';
+ +'<section class="full"><div class="bar"><button type="button" data-vm="new"'+(L.length>=MAXV?' disabled':'')+'>＋ Novo vilão</button></div>'+fltBar()+'<div id="vlist" class="vms-grid">'+(LV.length?LV.map(card).join(''):'<p class="note">'+(L.length?'Nenhum vilão neste filtro.':'Nenhum vilão ainda. Crie o primeiro, ou crie um dentro de uma campanha: ele aparece aqui sozinho.')+'</p>')+'</div></section></div>';
 }
 const bar=(v,k,lab)=>{const mk=k==='pv'?'pvm':'esm';
  return '<div class="vms-bar" data-k="'+k+'"><div class="vms-bl"><b>'+lab+'</b><input type="number" data-vf="'+k+'" value="'+v[k]+'" aria-label="'+lab+' atual"><span>/</span><input type="number" data-vf="'+mk+'" value="'+v[mk]+'" min="'+(k==='pv'?1:0)+'" aria-label="'+lab+' máximo"></div>'
@@ -8772,6 +8810,10 @@ hub.addEventListener('click',e=>{
  if(a==='hbadd'){if(v.hb.length<12){v.hb.push(nh({n:'Habilidade'}));save();const y=hub.scrollTop;show();hub.scrollTop=y}return}
  if(a==='hbdel'){v.hb.splice(+b.dataset.j,1);save();const y=hub.scrollTop;show();hub.scrollTop=y;return}
  if(a==='roll'){const at=v.ak[+b.dataset.j];const r=b.closest('.vms-rw').querySelector('.vms-res');if(at&&r)r.innerHTML=atkRoll(at);return}
+});
+hub.addEventListener('click',e=>{
+ const b=e.target.closest&&e.target.closest('[data-vflt]');if(!b||!hub.querySelector('.vms')||hub.querySelector('.vms-sheet'))return;
+ FILT=b.dataset.vflt||'';show();
 });
 hub.addEventListener('keydown',e=>{
  if(e.key!=='Enter'&&e.key!==' ')return;const b=e.target.closest&&e.target.closest('.vms-open,.vms-pic');
@@ -9734,6 +9776,111 @@ let iq=0;const sched=()=>{if(iq)return;iq=requestAnimationFrame(()=>{iq=0;try{in
 new MutationObserver(sched).observe(hub,{childList:true,subtree:true});
 addEventListener('hashchange',()=>setTimeout(sched,60));
 inject();
+})();
+</script>
+<style id="sin-mesa-mobile">
+/* ===== MESA NO CELULAR (≤700px): tabuleiro em destaque, ferramentas em um dock fixo embaixo ===== */
+#mesaSec .mtabs .ti{margin-right:.4em}
+@media (max-width:700px){
+#mesaSec button,#mesaSec .mpli,#mesaSec .mlia{touch-action:manipulation}
+#mesaSec:not(.mxf){display:flex;flex-direction:column;gap:10px;padding-inline:10px;min-width:0}
+#mesaSec:not(.mxf)>*{order:5;min-width:0}
+#mesaSec:not(.mxf)>h2{order:0;margin:0}
+#mesaSec:not(.mxf)>.mmsg{order:1}
+#mesaSec:not(.mxf)>.msymw{order:2}
+#mesaSec:not(.mxf)>.mplw{order:3}
+#mesaSec:not(.mxf)>.mlibw{order:4}
+#mesaSec:not(.mxf)>.mprep{order:5}
+#mesaSec:not(.mxf)>.mlay{order:6}
+#mesaSec:not(.mxf)>.medw{order:7}
+#mesaSec:not(.mxf)>.mst,#mesaSec:not(.mxf)>p.note{order:8;margin:0}
+#mesaSec:not(.mxf)>.mtools{order:9}
+
+/* tabuleiro e ordem de turnos ocupam a largura toda */
+#mesaSec:not(.mxf) .mlay{gap:10px;justify-content:stretch}
+#mesaSec:not(.mxf) .mwrap{flex:1 1 100%;max-width:none!important}
+#mesaSec:not(.mxf) .mboard{border-radius:10px}
+#mesaSec:not(.mxf) .mturn{flex:1 1 100%;min-width:0;padding:8px 10px}
+#mesaSec:not(.mxf) .mturn>h3:first-child{display:flex;align-items:center;justify-content:space-between;min-height:40px;margin:0;cursor:pointer;-webkit-user-select:none;user-select:none}
+#mesaSec:not(.mxf) .mturn>h3:first-child::after{content:"▾";font-size:16px;color:var(--mu)}
+#mesaSec:not(.mxf) .mturn[data-c]>h3:first-child::after{content:"▸ toque para abrir";font-size:12px;font-weight:400}
+#mesaSec:not(.mxf) .mturn[data-c]>*:not(:first-child):not(ol){display:none}
+#mesaSec:not(.mxf) .mturn[data-c] .mti:not(.vez){display:none}
+#mesaSec:not(.mxf) .mturn ol{max-height:38dvh;max-height:38vh;margin-top:6px}
+#mesaSec:not(.mxf) .mti{min-height:46px}
+#mesaSec:not(.mxf) .mord button{width:40px;height:40px}
+
+/* dock de ferramentas */
+#mesaSec:not(.mxf)>.mtools:has(>.mhd){position:sticky;bottom:0;z-index:40;display:flex;flex-direction:column;margin:0 -10px;padding:8px 10px calc(8px + env(safe-area-inset-bottom,0px));border-width:1px 0 0;border-radius:18px 18px 0 0;background:var(--pn2);box-shadow:0 -8px 24px rgba(0,0,0,.35)}
+#mesaSec:not(.mxf)>.mtools>.mtip{display:none}
+#mesaSec:not(.mxf)>.mtools>.mpanel{order:1;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;max-height:42dvh;max-height:42vh;overflow-y:auto;margin-bottom:8px;padding-bottom:4px;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+#mesaSec:not(.mxf)>.mtools>.mpanel[hidden]{display:none}
+#mesaSec:not(.mxf)>.mtools[data-dk=closed]>.mpanel{display:none}
+#mesaSec:not(.mxf)>.mtools>.mpanel>*{min-width:0}
+#mesaSec:not(.mxf)>.mtools>.mpanel>:is(.mscale,.mrls,.mrx,.mrsz,label,span,p,div,small,output,input:not([type=checkbox])){grid-column:1/-1}
+#mesaSec:not(.mxf)>.mtools>.mpanel button{min-height:44px;padding:8px 10px;font-size:14px;border-radius:12px}
+#mesaSec:not(.mxf)>.mtools>.mpanel .mdanger{margin-left:0}
+#mesaSec:not(.mxf)>.mtools .mscale{flex-wrap:wrap}
+#mesaSec:not(.mxf)>.mtools .mscale input[type=range]{width:100%;flex:1 1 100%}
+#mesaSec:not(.mxf)>.mtools input:not([type=range]):not([type=checkbox]):not([type=color]),#mesaSec:not(.mxf)>.mtools select{min-height:42px;font-size:16px}
+#mesaSec:not(.mxf)>.mtools>.mhd{order:2;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;margin:0}
+#mesaSec:not(.mxf)>.mtools>.mhd [data-m=next]{min-height:46px;padding:10px 12px;font-size:15px;border-radius:14px}
+#mesaSec:not(.mxf)>.mtools>.mhd .mpv{min-height:46px;padding:8px 10px;font-size:12px;border-radius:14px;white-space:nowrap}
+#mesaSec:not(.mxf) .mhd .mtabs{grid-column:1/-1;display:grid!important;grid-template-columns:repeat(6,minmax(0,1fr))!important;gap:4px!important;overflow:visible!important;white-space:normal!important;padding:0!important}
+#mesaSec:not(.mxf) .mhd .mtabs button{display:flex!important;flex-direction:column!important;align-items:center;justify-content:center;gap:2px;min-height:50px;padding:5px 2px!important;font-size:10px!important;line-height:1.1;border-radius:12px!important;overflow:hidden}
+#mesaSec:not(.mxf) .mhd .mtabs .ti{font-size:20px;line-height:1;margin:0}
+#mesaSec:not(.mxf) .mhd .mtabs .tl{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* a aba aberta fica marcada; tocar nela de novo recolhe o dock */
+#mesaSec:not(.mxf)>.mtools[data-dk=closed] .mtabs button[aria-selected=true]{background:transparent!important;border-color:transparent!important;color:var(--mu)!important}
+
+/* editor do ícone selecionado, compacto */
+#mesaSec:not(.mxf) .med{margin-top:0;padding:10px;gap:8px}
+#mesaSec:not(.mxf) .med .note{display:none}
+#mesaSec:not(.mxf) .med .mg{gap:6px;padding:8px}
+#mesaSec:not(.mxf) .med button{min-height:42px;padding:8px 12px}
+#mesaSec:not(.mxf) .med input:not([type=color]):not([type=range]),#mesaSec:not(.mxf) .med select{min-height:42px;font-size:16px}
+#mesaSec:not(.mxf) .med .mg[aria-label="Cor do ícone"]{flex-wrap:nowrap;overflow-x:auto;padding-bottom:10px;-webkit-overflow-scrolling:touch}
+#mesaSec:not(.mxf) .med .mg[aria-label="Cor do ícone"] .t{flex:none}
+#mesaSec:not(.mxf) .med .mg[aria-label="Cor do ícone"] .msw,#mesaSec:not(.mxf) .med .mg[aria-label="Cor do ícone"] input{flex:none}
+#mesaSec:not(.mxf) .msw{width:40px!important;height:40px!important}
+#mesaSec:not(.mxf) .mnm{flex:1 1 100%}
+}
+</style>
+<script>
+/* ===== Mesa no celular: separa ícone/rótulo das abas, controla o dock e a lista de turnos ===== */
+(function(){
+if(window.__sinMesaMob)return;window.__sinMesaMob=1;
+const hub=document.getElementById('hub');if(!hub)return;
+const mq=matchMedia('(max-width:700px)');
+let dock='closed',turnOpen=false,was=false,q=0;
+function fix(){
+ document.querySelectorAll('#mesaSec .mtabs button[data-tb]:not([data-mm])').forEach(b=>{
+  b.dataset.mm='1';
+  const t=b.textContent.trim(),m=t.match(/^(\S+)\s+([\s\S]+)$/);if(!m)return;
+  b.textContent='';
+  const i=document.createElement('span');i.className='ti';i.setAttribute('aria-hidden','true');i.textContent=m[1];
+  const l=document.createElement('span');l.className='tl';l.textContent=m[2];
+  b.append(i,l);b.setAttribute('aria-label',m[2]);b.title=m[2];
+ });
+ document.querySelectorAll('#mesaSec .mtools[data-rd]:not([data-dk])').forEach(t=>{t.dataset.dk=dock});
+ document.querySelectorAll('#mesaSec .mturn:not([data-mm])').forEach(t=>{t.dataset.mm='1';if(!turnOpen)t.setAttribute('data-c','')});
+}
+new MutationObserver(()=>{if(q)return;q=requestAnimationFrame(()=>{q=0;try{fix()}catch(e){}})}).observe(hub,{childList:true,subtree:true});
+document.addEventListener('click',e=>{
+ if(!mq.matches||!e.target.closest)return;
+ const b=e.target.closest('#mesaSec .mtabs [data-tb]');
+ if(b){
+  was=b.getAttribute('aria-selected')==='true';
+  const t=b.closest('.mtools');if(!t)return;
+  dock=(was&&t.dataset.dk==='open')?'closed':'open';t.dataset.dk=dock;return;
+ }
+ const h=e.target.closest('#mesaSec .mturn>h3:first-child');
+ if(h){
+  const t=h.parentNode;
+  if(t.hasAttribute('data-c')){t.removeAttribute('data-c');turnOpen=true}else{t.setAttribute('data-c','');turnOpen=false}
+ }
+},true);
+fix();
 })();
 </script>
 </body>
