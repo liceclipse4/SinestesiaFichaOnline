@@ -3879,12 +3879,12 @@ function removeTok(t){
 function setStat(){const e=sec&&sec.querySelector('.mst');if(e)e.textContent=ST.stat||''}
 function queue(){
  if(!canMove())return;if(!ST.master)ST.dirty=1;if(ST.master&&ST.prep){ST.pdirty=1;try{dispatchEvent(new Event('sin-prep'))}catch(_){}}
- ST.stat='Salvando…';setStat();clearTimeout(svT);svT=setTimeout(flush,120);libSched();
+ ST.qAt=Date.now();ST.stat='Salvando…';setStat();clearTimeout(svT);svT=setTimeout(flush,120);libSched();
 }
 async function flush(){
  const me=ST,s=sbc();if(!me||!s)return;
  try{
-  if(!me.master){const pl=JSON.stringify(me.d),r=await s.rpc('mover_icones',{cid:String(me.cid),txt:pl});if(r.error)throw r.error;me.raw=pl;me.dirty=0;me.stat='Salvo ✓';me.err='';if(ST===me)setStat();return}
+  if(!me.master){const pl=JSON.stringify(me.d),r=await s.rpc('mover_icones',{cid:String(me.cid),txt:pl});if(r.error)throw r.error;me.raw=pl;me.dirty=0;me.stat='Salvo ✓';me.err='';rtSend('sv');if(ST===me)setStat();return}
   if(me.prep){me.stat='Rascunho · jogadores não veem';if(ST===me)setStat();return}
   const used=new Set(),uk=t=>{if(t.m)used.add(t.m);(t.o||[]).forEach(uk)};me.d.k.forEach(uk);
   Object.keys(me.img.im).forEach(k=>{if(!used.has(k)){delete me.img.im[k];me.imgDirty=true}});
@@ -3894,11 +3894,11 @@ async function flush(){
    if(!r0.data||!r0.data.length)throw new Error('sem permissão para salvar');
    me.imgDirty=false;
   }
-  const payload=JSON.stringify(me.d);
+  const payload=JSON.stringify(me.d);(me.sent||(me.sent=[])).push(payload);if(me.sent.length>6)me.sent.shift();me.qAt=Date.now();
   const r=await s.from('campanhas').update({mesa:payload}).eq('id',me.cid).select('id');
   if(r.error)throw r.error;
   if(!r.data||!r.data.length)throw new Error('sem permissão para salvar');
-  me.raw=payload;me.iv=me.d.iv;me.stat='Salvo ✓';me.err='';
+  me.raw=payload;me.iv=me.d.iv;me.stat='Salvo ✓';me.err='';rtSend('sv');
  }catch(e){me.dirty=0;me.stat='Não salvou: '+(e.message||e);me.err=String(e.message||e)}
  if(ST===me){setStat();if(me.err)paintErr()}
 }
@@ -3938,24 +3938,42 @@ async function load(){
    me.loaded=true;me.raw=rs;me.d=parse(raw);
    if(r.data&&r.data.mesa_img!=null)me.img=parseImg(r.data.mesa_img);
    me.iv=me.d.iv;paintAll();
-  }else if(!me.master&&rs!==me.raw&&!drag&&!me.dirty){
+  }else if(rs!==me.raw&&!drag&&!me.dirty&&!(me.master&&(me.prep||(me.sent||[]).includes(rs)||Date.now()-(me.qAt||0)<500))){
    const d=parse(raw),od=me.d;me.d=d;await syncImg(me,s);if(ST!==me)return;me.raw=rs;remoteApply(od,d);
   }
  }catch(e){me.err=String(e.message||e);if(ST===me)paintAll()}
 }
-/* TEMPO REAL: o jogador assina as mudancas da linha da campanha (Supabase Realtime) e recarrega na hora.
-   Se o Realtime nao estiver ativo na tabela, o polling abaixo continua funcionando (1,5 s). */
-let rtCh=null,rtCid=null,rtOk=false,rtT=0,rtN=0;
+/* TEMPO REAL (mestre e jogadores): canal Supabase Realtime por campanha.
+   - 'sv': avisa que alguem salvou -> os outros recarregam na hora (nao depende de ativar replicacao no banco);
+   - 'mv': posicao do icone ENQUANTO se arrasta (so memoria, nao grava no banco);
+   - postgres_changes: reforco, se a tabela estiver na publicacao supabase_realtime.
+   Sem Realtime, o polling (1,5 s) continua funcionando. */
+let rtCh=null,rtCid=null,rtOk=false,rtT=0,rtN=0,rtMT=0;
+const rtSend=(ev,p)=>{if(rtCh&&rtOk){try{rtCh.send({type:'broadcast',event:ev,payload:p||{}})}catch(_){}}};
+const rtKick=()=>{clearTimeout(rtT);rtT=setTimeout(()=>{if(ST&&ST.open&&ST.loaded&&!document.hidden)load()},20)};
+function rtMv(p){
+ if(!p||!ST||!ST.loaded||!board||!board.isConnected)return;
+ const t=tokOf(p.i),x=+p.x,y=+p.y;
+ if(!t||(drag&&drag.t===t)||!(x>=0&&x<=100&&y>=0&&y<=100))return;
+ t.x=x;t.y=y;moveEl(t);
+}
+function rtDragSend(t,force){const n=Date.now();if(!force&&n-rtMT<70)return;rtMT=n;rtSend('mv',{i:t.i,x:t.x,y:t.y})}
 function rtSync(){
  const s=sbc();if(!s||!s.channel)return;
- const want=(ST&&ST.open&&!ST.master&&ST.cid!=null)?String(ST.cid):null;
+ const want=(ST&&ST.open&&ST.cid!=null)?String(ST.cid):null;
  if(want===rtCid)return;
  if(rtCh){try{s.removeChannel(rtCh)}catch(_){}rtCh=null}
  rtOk=false;rtCid=want;if(!want)return;
- try{rtCh=s.channel('mesa-'+want).on('postgres_changes',{event:'UPDATE',schema:'public',table:'campanhas',filter:'id=eq.'+want},()=>{clearTimeout(rtT);rtT=setTimeout(()=>{if(ST&&ST.open&&!ST.master&&!document.hidden)load()},20)}).subscribe(st=>{rtOk=(st==='SUBSCRIBED')})}catch(_){rtCh=null}
+ try{
+  rtCh=s.channel('mesa-'+want,{config:{broadcast:{self:false}}})
+   .on('broadcast',{event:'sv'},rtKick)
+   .on('broadcast',{event:'mv'},m=>rtMv(m&&m.payload))
+   .on('postgres_changes',{event:'UPDATE',schema:'public',table:'campanhas',filter:'id=eq.'+want},rtKick)
+   .subscribe(st=>{rtOk=(st==='SUBSCRIBED')});
+ }catch(_){rtCh=null}
 }
 setInterval(rtSync,1000);
-setInterval(()=>{rtN++;if(rtOk?(rtN%12):(rtN%3))return;if(ST&&ST.open&&!ST.master&&sec&&sec.isConnected&&!document.hidden&&!hub.hidden)load()},500);
+setInterval(()=>{rtN++;if(rtOk?(rtN%12):(rtN%3))return;if(ST&&ST.open&&sec&&sec.isConnected&&!document.hidden&&!hub.hidden)load()},500);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&ST&&ST.open&&!ST.master)load()});
 
 /* ---------- desenho ---------- */
@@ -5331,14 +5349,14 @@ function onMove(e){
  if(!drag.moved&&Math.hypot(e.clientX-drag.sx,e.clientY-drag.sy)<4)return;
  drag.moved=true;
  const r=board.getBoundingClientRect(),[x,y]=wallFit(drag.t,fit(drag.t,(e.clientX-r.left)/r.width*100,(e.clientY-r.top)/r.height*100),e.altKey&&ST.master);
- drag.t.x=x;drag.t.y=y;drag.el.style.left=x+'%';drag.el.style.top=y+'%';
+ drag.t.x=x;drag.t.y=y;drag.el.style.left=x+'%';drag.el.style.top=y+'%';rtDragSend(drag.t);
  if(drag.t.lt||drag.t.lu)fogDraw();
  mdDraw(drag);
 }
 function onUp(e){
  if(!drag||e.pointerId!==drag.pid)return;
  drag.el.classList.remove('drag');
- const mv=drag.moved;drag=null;if(mv){mdFinish();queue()}
+ const mv=drag.moved,tk=drag.t;drag=null;if(mv){rtDragSend(tk,true);mdFinish();queue()}
 }
 
 /* ---------- integração com a página da campanha ---------- */
