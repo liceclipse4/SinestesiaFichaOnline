@@ -3955,7 +3955,18 @@ function rtMv(p){
  if(!p||!ST||!ST.loaded||!board||!board.isConnected)return;
  const t=tokOf(p.i),x=+p.x,y=+p.y;
  if(!t||(drag&&drag.t===t)||!(x>=0&&x<=100&&y>=0&&y<=100))return;
- t.x=x;t.y=y;moveEl(t);
+ t.x=x;t.y=y;
+ if(rtPerf()){const el=board.querySelector('.mtk[data-i="'+t.i+'"]');if(el){el.style.left=x+'%';el.style.top=y+'%'}}else moveEl(t);
+}
+const rtPerf=()=>document.documentElement.hasAttribute('data-perf');
+/* luz ao vivo: direcao da lanterna enquanto o mouse passa (desligado no modo performance) */
+let rtAT=0;
+function rtAimSend(t,force){if(rtPerf()||!canMove())return;const n=Date.now();if(!force&&n-rtAT<50)return;rtAT=n;rtSend('la',{i:t.i,a:t.la})}
+function rtLa(p){
+ if(rtPerf()||!p||!ST||!ST.loaded||!board||!board.isConnected)return;
+ const t=tokOf(p.i),a=+p.a;
+ if(!t||!Number.isFinite(a)||ST.lit===t.i||(drag&&drag.t===t))return;
+ t.la=a;fogDraw();
 }
 function rtDragSend(t,force){const n=Date.now();if(!force&&n-rtMT<70)return;rtMT=n;rtSend('mv',{i:t.i,x:t.x,y:t.y})}
 function rtSync(){
@@ -3968,6 +3979,7 @@ function rtSync(){
   rtCh=s.channel('mesa-'+want,{config:{broadcast:{self:false}}})
    .on('broadcast',{event:'sv'},rtKick)
    .on('broadcast',{event:'mv'},m=>rtMv(m&&m.payload))
+   .on('broadcast',{event:'la'},m=>rtLa(m&&m.payload))
    .on('postgres_changes',{event:'UPDATE',schema:'public',table:'campanhas',filter:'id=eq.'+want},rtKick)
    .subscribe(st=>{rtOk=(st==='SUBSCRIBED')});
  }catch(_){rtCh=null}
@@ -4529,7 +4541,7 @@ addEventListener('resize',()=>fogDraw());
 function lampAim(e){
  if(!ST||!ST.lit||ST.lk||!board||!board.isConnected)return;const t=tokOf(ST.lit);if(!t)return;
  const r=board.getBoundingClientRect(),a=Math.atan2(e.clientY-(r.top+t.y/100*r.height),e.clientX-(r.left+t.x/100*r.width));
- t.la=Math.round(a*100)/100;fogDraw();clearTimeout(lq);lq=setTimeout(queue,300);
+ t.la=Math.round(a*100)/100;fogDraw();rtAimSend(t);clearTimeout(lq);lq=setTimeout(()=>{rtAimSend(t,true);queue()},300);
 }
 addEventListener('pointermove',lampAim);
 addEventListener('pointerdown',e=>{
@@ -5096,7 +5108,7 @@ setInterval(()=>{if(ST&&ST.master&&ST.open&&ST.loaded&&sec&&sec.isConnected&&!do
 
 /* OTIMIZAÇÃO: mover só muda left/top (antes recriava o HTML do ícone, reaplicava a imagem e refazia a lista toda) */
 function moveEl(t){const el=board&&board.querySelector('.mtk[data-i="'+t.i+'"]');if(el){el.style.left=t.x+'%';el.style.top=t.y+'%'}fogDraw()}
-function move(t,dx,dy){if(t.p){ST.stat='Ícone fixado: solte-o para mover';setStat();SFX.p('locked');return}const ox=t.x,oy=t.y,[x,y]=wallFit(t,fit(t,t.x+dx,t.y+dy));t.x=x;t.y=y;moveEl(t);queue();SFX.p(x===ox&&y===oy?'bump':'step')}
+function move(t,dx,dy){if(t.p){ST.stat='Ícone fixado: solte-o para mover';setStat();SFX.p('locked');return}const ox=t.x,oy=t.y,[x,y]=wallFit(t,fit(t,t.x+dx,t.y+dy));t.x=x;t.y=y;moveEl(t);rtDragSend(t,true);queue();SFX.p(x===ox&&y===oy?'bump':'step')}
 /* ---------- BIBLIOTECA DE ÍCONES DO MESTRE ----------
    Todo ícone criado pelo mestre (com nome ou imagem) é guardado sozinho neste navegador, para reaproveitar em qualquer mesa.
    Dá para excluir da biblioteca; o que já está na mesa não é afetado. */
