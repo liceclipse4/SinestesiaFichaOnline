@@ -3939,7 +3939,7 @@ async function load(){
    if(r.data&&r.data.mesa_img!=null)me.img=parseImg(r.data.mesa_img);
    me.iv=me.d.iv;paintAll();
   }else if(rs!==me.raw&&!drag&&!me.dirty&&!(me.master&&(me.prep||(me.sent||[]).includes(rs)||Date.now()-(me.qAt||0)<500))){
-   const d=parse(raw),od=me.d;me.d=d;await syncImg(me,s);if(ST!==me)return;me.raw=rs;remoteApply(od,d);
+   const d=parse(raw),od=me.d;{const nw=Date.now();d.k.forEach(t=>{const l=LIVE[t.i];if(!l||nw-l.t>1500)return;if(l.a!=null)t.la=l.a;if(l.x!=null){t.x=l.x;t.y=l.y}if(l.lt===0)t.lt=undefined;else if(l.lt===1)t.lt=1})}me.d=d;await syncImg(me,s);if(ST!==me)return;me.raw=rs;remoteApply(od,d);
   }
  }catch(e){me.err=String(e.message||e);if(ST===me)paintAll()}
 }
@@ -3948,25 +3948,31 @@ async function load(){
    - 'mv': posicao do icone ENQUANTO se arrasta (so memoria, nao grava no banco);
    - postgres_changes: reforco, se a tabela estiver na publicacao supabase_realtime.
    Sem Realtime, o polling (1,5 s) continua funcionando. */
-let rtCh=null,rtCid=null,rtOk=false,rtT=0,rtN=0,rtMT=0;
+let rtCh=null,rtCid=null,rtOk=false,rtT=0,rtN=0,rtMT=0;const LIVE={};
 const rtSend=(ev,p)=>{if(rtCh&&rtOk){try{rtCh.send({type:'broadcast',event:ev,payload:p||{}})}catch(_){}}};
 const rtKick=()=>{clearTimeout(rtT);rtT=setTimeout(()=>{if(ST&&ST.open&&ST.loaded&&!document.hidden)load()},20)};
 function rtMv(p){
  if(!p||!ST||!ST.loaded||!board||!board.isConnected)return;
  const t=tokOf(p.i),x=+p.x,y=+p.y;
  if(!t||(drag&&drag.t===t)||!(x>=0&&x<=100&&y>=0&&y<=100))return;
- t.x=x;t.y=y;
- if(rtPerf()){const el=board.querySelector('.mtk[data-i="'+t.i+'"]');if(el){el.style.left=x+'%';el.style.top=y+'%'}}else moveEl(t);
+ t.x=x;t.y=y;{const L=LIVE[t.i]||(LIVE[t.i]={});L.t=Date.now();L.x=x;L.y=y}
+ if(rtPerf()){const el=board.querySelector('.mtk[data-i="'+t.i+'"]');if(el){el.style.left=x+'%';el.style.top=y+'%'}fogDraw()}else moveEl(t);
 }
 const rtPerf=()=>document.documentElement.hasAttribute('data-perf');
 /* luz ao vivo: direcao da lanterna enquanto o mouse passa (desligado no modo performance) */
 let rtAT=0;
-function rtAimSend(t,force){if(rtPerf()||!canMove())return;const n=Date.now();if(!force&&n-rtAT<50)return;rtAT=n;rtSend('la',{i:t.i,a:t.la})}
+function rtAimSend(t,force){if(!canMove())return;const n=Date.now();if(!force&&n-rtAT<33)return;rtAT=n;rtSend('la',{i:t.i,a:t.la,x:t.x,y:t.y,r:t.lr||0,l:t.lt?1:0})}
 function rtLa(p){
- if(rtPerf()||!p||!ST||!ST.loaded||!board||!board.isConnected)return;
- const t=tokOf(p.i),a=+p.a;
- if(!t||!Number.isFinite(a)||ST.lit===t.i||(drag&&drag.t===t))return;
- t.la=a;fogDraw();
+ if(!p||!ST||!ST.loaded||!board||!board.isConnected)return;
+ const t=tokOf(p.i);if(!t||ST.lit===t.i||(drag&&drag.t===t))return;
+ const L=LIVE[t.i]||(LIVE[t.i]={});L.t=Date.now();
+ if(p.l===0){t.lt=undefined;L.lt=0;fogDraw();return}
+ if(p.l===1){t.lt=1;L.lt=1}
+ const a=+p.a;if(Number.isFinite(a)){t.la=a;L.a=a}
+ if(p.r!==undefined)t.lr=+p.r>0?+p.r:undefined;
+ const x=+p.x,y=+p.y;
+ if(x>=0&&x<=100&&y>=0&&y<=100&&(t.x!==x||t.y!==y)){t.x=x;t.y=y;L.x=x;L.y=y;const el=board.querySelector('.mtk[data-i="'+t.i+'"]');if(el){el.style.left=x+'%';el.style.top=y+'%'}}
+ fogDraw();
 }
 function rtDragSend(t,force){const n=Date.now();if(!force&&n-rtMT<70)return;rtMT=n;rtSend('mv',{i:t.i,x:t.x,y:t.y})}
 function rtSync(){
@@ -4065,7 +4071,7 @@ function fogPaint(){
   board.appendChild(e)});
 }
 /* ---------- lanternas: cone de luz, brilhinhos, WASD ---------- */
-const spk={};let lraf=0,lq=0;
+const spk={};let lraf=0,lq=0,lqL=0;
 let dkm=100;try{const v=localStorage.getItem('sin-dkm');if(v!=null&&isFinite(+v))dkm=clamp(+v,0,100)}catch(e){}
 document.addEventListener('input',e=>{const x=e.target;if(!x||x.id!=='mdk')return;dkm=clamp(+x.value||0,0,100);try{localStorage.setItem('sin-dkm',String(dkm))}catch(_){}const o=document.getElementById('mdkv');if(o)o.textContent=dkm+'%';fogDraw()});
 let blz=1;try{const v=localStorage.getItem('sin-brilho-luz');if(v!=null&&isFinite(+v))blz=clamp(+v,1,4)}catch(e){}
@@ -4113,8 +4119,8 @@ function lampSync(){
 }
 function lampToggle(){
  ST.lk=false;
- if(ST.lit){const t0=tokOf(ST.lit);if(t0)t0.lt=undefined;ST.lit=null}
- else{const t=ST.sel&&tokOf(ST.sel);if(!t||!canMove())return;t.lt=1;if(t.la==null)t.la=0;ST.lit=t.i}SFX.p(ST.lit?'lampOn':'lampOff');
+ if(ST.lit){const t0=tokOf(ST.lit);if(t0){t0.lt=undefined;rtSend('la',{i:t0.i,a:t0.la,x:t0.x,y:t0.y,r:t0.lr||0,l:0})}ST.lit=null}
+ else{const t=ST.sel&&tokOf(ST.sel);if(!t||!canMove())return;t.lt=1;if(t.la==null)t.la=0;ST.lit=t.i;rtAimSend(t,true)}SFX.p(ST.lit?'lampOn':'lampOff');
  lampSync();fogDraw();queue();
 }
 function cone(g,cx,cy,a,R,half,rgb,k){
@@ -4262,7 +4268,7 @@ addEventListener('input',e=>{
  const k=x.id==='mlr'?'lr':'gr',df=k==='lr'?30/dims().cw:3,v=+x.value;
  t[k]=Math.abs(v-df)<.01?undefined:v;
  const o=sec&&sec.querySelector('#'+x.id+'v');if(o)o.textContent=(Math.round(v*15)/10)+' m';
- fogDraw();clearTimeout(lrT);lrT=setTimeout(queue,300);
+ fogDraw();if(k==='lr'&&t.lt)rtAimSend(t);clearTimeout(lrT);lrT=setTimeout(queue,300);
 });
 /* ---------- paredes: geometria, colisão, luz ---------- */
 const snp=(x,y)=>{if(!ST.d.sn)return[x,y];const D=dims();return[Math.round(clamp(Math.round(x/D.cw)*D.cw,0,100)*100)/100,Math.round(clamp(Math.round(y/D.ch)*D.ch,0,100)*100)/100]};
@@ -4541,7 +4547,7 @@ addEventListener('resize',()=>fogDraw());
 function lampAim(e){
  if(!ST||!ST.lit||ST.lk||!board||!board.isConnected)return;const t=tokOf(ST.lit);if(!t)return;
  const r=board.getBoundingClientRect(),a=Math.atan2(e.clientY-(r.top+t.y/100*r.height),e.clientX-(r.left+t.x/100*r.width));
- t.la=Math.round(a*100)/100;fogDraw();rtAimSend(t);clearTimeout(lq);lq=setTimeout(()=>{rtAimSend(t,true);queue()},300);
+ t.la=Math.round(a*100)/100;fogDraw();rtAimSend(t);if(!rtOk&&Date.now()-lqL>400){lqL=Date.now();queue()}clearTimeout(lq);lq=setTimeout(()=>{rtAimSend(t,true);queue()},300);
 }
 addEventListener('pointermove',lampAim);
 addEventListener('pointerdown',e=>{
@@ -9376,7 +9382,7 @@ html.mxf-on body>:is(.tzt,.tzl,.tzm,.cor,.bg){display:none!important}
 
 /* 5) "Meu personagem" e RPG viram painéis flutuantes */
 html.mxf-on #mesaMe,html.mxf-on #rpgSec{display:none!important}
-html.mxf-on.mxf-me #mesaMe,html.mxf-on.mxf-rpg #rpgSec{display:block!important;position:fixed!important;z-index:470;top:10px;bottom:10px;right:10px;left:auto!important;width:min(480px,calc(100vw - 80px))!important;max-width:none!important;margin:0!important;overflow:auto;box-sizing:border-box;border-radius:14px!important;box-shadow:0 14px 44px rgba(0,0,0,.55)!important;transform:none!important;animation:none!important;background:var(--pn2,#f4efff)!important}
+html.mxf-on.mxf-me #mesaMe,html.mxf-on.mxf-rpg #rpgSec{display:block!important;position:fixed!important;z-index:470!important;top:10px;bottom:10px;right:10px;left:auto!important;width:min(480px,calc(100vw - 80px))!important;max-width:none!important;margin:0!important;overflow:auto;box-sizing:border-box;border-radius:14px!important;box-shadow:0 14px 44px rgba(0,0,0,.55)!important;transform:none!important;animation:none!important;background:var(--pn2,#f4efff)!important}
 
 /* 6) telas estreitas: barra no topo, mesa em cima e ferramentas rolando por baixo */
 @media(max-width:820px){
@@ -9404,6 +9410,7 @@ bar.innerHTML='<button type="button" data-xf="tools" aria-pressed="false" title=
  +'<button type="button" data-xf="turn" aria-pressed="false" title="Ordem de turnos"><i>⚔</i><span>Turnos</span></button>'
  +'<button type="button" data-xf="me" aria-pressed="false" title="Meu personagem" hidden><i>🧙</i><span>Ficha</span></button>'
  +'<button type="button" data-xf="rpg" aria-pressed="false" title="RPG: rolagens e registro" hidden><i>🎲</i><span>RPG</span></button>'
+ +'<button type="button" data-xf="opt" title="Opções: modo performance, efeitos e sons"><i>⚙</i><span>Opções</span></button>'
  +'<button type="button" data-xf="exit" title="Sair da tela cheia (Esc)"><i>✕</i><span>Sair</span></button>';
 document.body.appendChild(bar);
 const bt=k=>bar.querySelector('[data-xf='+k+']');
@@ -9476,6 +9483,7 @@ document.addEventListener('click',e=>{
  const k=b.dataset.xf;
  if(k==='toggle'){on?exit():enter();return}
  if(k==='exit'){exit();return}
+ if(k==='opt'){const o=document.getElementById('sinOpt');if(o)o.click();return}
  if(k==='tools'){drawer=!drawer;apply();return}
  if(k==='turn'){turn=!turnOn();apply();return}
  if(k==='me'){panel=panel==='me'?'':'me';apply();return}
