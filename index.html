@@ -3912,7 +3912,7 @@ if(window.__sinMesa)return;window.__sinMesa=1;
 const hub=document.getElementById('hub');if(!hub)return;
 const PAL=[['Vermelho','#e11d2e'],['Laranja','#f97316'],['Amarelo','#facc15'],['Verde','#22c55e'],['Ciano','#06b6d4'],['Azul','#2563eb'],['Roxo','#8b5cf6'],['Rosa','#ec4899'],['Branco','#f8fafc'],['Preto','#111827'],['Marrom','#92400e'],['Cinza','#94a3b8']];
 const SZ=[['P',6.5],['M',9],['G',14],['GG',19]],FM=['● Círculo','■ Quadrado','◆ Losango','🖼 Sem forma (só a imagem)'];
-const COLSET=[8,10,12,16,20,24,28,32,40,48],MAXT=80;
+const COLSET=[8,10,12,16,20,24,28,32,40,48],MAXT=80,MAXW=400;
 const SQL='alter table public.campanhas add column if not exists mesa text;\nalter table public.campanhas add column if not exists mesa_img text;';
 
 const css=`
@@ -4077,7 +4077,7 @@ function parse(raw){
  let o=raw;if(typeof raw==='string'){try{o=JSON.parse(raw)}catch(e){return blank()}}
  if(!o||!Array.isArray(o.k))return blank();
  const k=o.k.filter(t=>t&&t.i).slice(0,MAXT).map(norm);
- return{v:1,pm:o.pm?1:0,fg:Array.isArray(o.fg)?o.fg.slice(0,30).map(q=>({i:String(q.i||'f'+Math.random().toString(36).slice(2,7)).replace(/[^\w-]/g,'').slice(0,12)||'f1',x:clamp(+q.x||0,0,100),y:clamp(+q.y||0,0,100),w:clamp(+q.w||10,3,100),h:clamp(+q.h||10,3,100)})):[],fd:Array.isArray(o.fd)?o.fd.slice(0,30).map(f=>({i:String(f&&f.i||'p'+Math.random().toString(36).slice(2,7)).replace(/[^\w-]/g,'').slice(0,12)||'p1',n:String((f&&f.n)||'Pasta').slice(0,24),c:(f&&f.c)?1:undefined})):[],ic:Math.max(0,+o.ic||0),iv:Math.max(0,Math.round(+o.iv)||0),dk:o.dk?1:0,lc:o.lc?1:0,wl:Array.isArray(o.wl)?o.wl.slice(0,60).map(q=>({i:String(q.i||'w'+Math.random().toString(36).slice(2,7)).replace(/[^\w-]/g,'').slice(0,12)||'w1',x1:clamp(+q.x1||0,0,100),y1:clamp(+q.y1||0,0,100),x2:clamp(+q.x2||0,0,100),y2:clamp(+q.y2||0,0,100),p:q.p?1:undefined,t:q.t?1:undefined,dr:q.dr?1:undefined,k:(q.dr&&q.k)?1:undefined,o:(q.dr&&q.o&&!q.k)?1:undefined,oa:(q.dr&&q.o&&!q.k&&+q.oa>0&&+q.oa<1)?Math.round(+q.oa*1000)/1000:undefined,s:(q.dr&&+q.s<0)?-1:undefined,ld:(q.dr&&[-1,1,3,4].includes(+q.ld))?+q.ld:undefined})):[],g:o.g===0?0:1,sn:o.sn===0?0:1,c:clamp(Math.round(+o.c)||10,6,60),ar:clamp(+o.ar>0?+o.ar:.75,.35,1.6),l:(typeof o.l==='string'&&k.some(t=>t.i===o.l))?o.l:'',k,sy:(o.sy&&typeof o.sy==='object')?o.sy:undefined};
+ return{v:1,pm:o.pm?1:0,fg:Array.isArray(o.fg)?o.fg.slice(0,30).map(q=>({i:String(q.i||'f'+Math.random().toString(36).slice(2,7)).replace(/[^\w-]/g,'').slice(0,12)||'f1',x:clamp(+q.x||0,0,100),y:clamp(+q.y||0,0,100),w:clamp(+q.w||10,3,100),h:clamp(+q.h||10,3,100)})):[],fd:Array.isArray(o.fd)?o.fd.slice(0,30).map(f=>({i:String(f&&f.i||'p'+Math.random().toString(36).slice(2,7)).replace(/[^\w-]/g,'').slice(0,12)||'p1',n:String((f&&f.n)||'Pasta').slice(0,24),c:(f&&f.c)?1:undefined})):[],ic:Math.max(0,+o.ic||0),iv:Math.max(0,Math.round(+o.iv)||0),dk:o.dk?1:0,lc:o.lc?1:0,wl:Array.isArray(o.wl)?o.wl.slice(0,MAXW).map(q=>({i:String(q.i||'w'+Math.random().toString(36).slice(2,7)).replace(/[^\w-]/g,'').slice(0,12)||'w1',x1:clamp(+q.x1||0,0,100),y1:clamp(+q.y1||0,0,100),x2:clamp(+q.x2||0,0,100),y2:clamp(+q.y2||0,0,100),p:q.p?1:undefined,t:q.t?1:undefined,dr:q.dr?1:undefined,k:(q.dr&&q.k)?1:undefined,o:(q.dr&&q.o&&!q.k)?1:undefined,oa:(q.dr&&q.o&&!q.k&&+q.oa>0&&+q.oa<1)?Math.round(+q.oa*1000)/1000:undefined,s:(q.dr&&+q.s<0)?-1:undefined,ld:(q.dr&&[-1,1,3,4].includes(+q.ld))?+q.ld:undefined})):[],g:o.g===0?0:1,sn:o.sn===0?0:1,c:clamp(Math.round(+o.c)||10,6,60),ar:clamp(+o.ar>0?+o.ar:.75,.35,1.6),l:(typeof o.l==='string'&&k.some(t=>t.i===o.l))?o.l:'',k,sy:(o.sy&&typeof o.sy==='object')?o.sy:undefined};
 }
 
 /* ---------- imagens (ícones e fundo) ---------- */
@@ -4243,7 +4243,7 @@ async function load(){
    if(r.data&&r.data.mesa_img!=null)me.img=parseImg(r.data.mesa_img);
    me.iv=me.d.iv;paintAll();
   }else if(rs!==me.raw&&!me.dirty&&!(me.master&&(me.prep||(me.sent||[]).includes(rs)||Date.now()-(me.qAt||0)<500))){
-   const d=parse(raw),od=me.d;{const nw=Date.now();d.k.forEach(t=>{const l=LIVE[t.i];if(!l||nw-l.t>1500)return;if(l.a!=null)t.la=l.a;if(l.x!=null){t.x=l.x;t.y=l.y}if(l.lt===0)t.lt=undefined;else if(l.lt===1)t.lt=1})}if(drag){const nd=d.k.find(q=>q.i===drag.t.i);if(nd){nd.x=drag.t.x;nd.y=drag.t.y;drag.t=nd}}me.d=d;await syncImg(me,s);if(ST!==me)return;me.raw=rs;remoteApply(od,d);if(drag&&board&&board.isConnected){const e2=board.querySelector('.mtk[data-i="'+drag.t.i+'"]');if(e2&&e2!==drag.el){drag.el=e2;e2.classList.add('drag')}}
+   const d=parse(raw),od=me.d;{const nw=Date.now();d.k.forEach(t=>{const l=LIVE[t.i];if(!l||nw-l.t>1500)return;if(l.a!=null)t.la=l.a;if(l.x!=null){t.x=l.x;t.y=l.y}if(l.lt===0)t.lt=undefined;else if(l.lt===1)t.lt=1})}if(drag){const nd=d.k.find(q=>q.i===drag.t.i);if(nd){nd.x=drag.t.x;nd.y=drag.t.y;drag.t=nd}if(drag.g)drag.g.forEach(m=>{const q=d.k.find(o=>o.i===m.t.i);if(q){q.x=m.t.x;q.y=m.t.y;m.t=q}})}me.d=d;await syncImg(me,s);if(ST!==me)return;me.raw=rs;remoteApply(od,d);if(drag&&board&&board.isConnected){const e2=board.querySelector('.mtk[data-i="'+drag.t.i+'"]');if(e2&&e2!==drag.el){drag.el=e2;e2.classList.add('drag')}if(drag.g)drag.g.forEach(m=>{const e3=board.querySelector('.mtk[data-i="'+m.t.i+'"]');if(e3){m.el=e3;e3.classList.add('drag')}})}
   }
  }catch(e){me.err=String(e.message||e);if(ST===me)paintAll()}
 }
@@ -4258,7 +4258,7 @@ const rtKick=()=>{clearTimeout(rtT);rtT=setTimeout(()=>{if(ST&&ST.open&&ST.loade
 function rtMv(p){
  if(!p||!ST||!ST.loaded||!board||!board.isConnected)return;
  const t=tokOf(p.i),x=+p.x,y=+p.y;
- if(!t||(drag&&drag.t===t)||!(x>=0&&x<=100&&y>=0&&y<=100))return;
+ if(!t||(drag&&(drag.t===t||(drag.g&&drag.g.some(m=>m.t===t))))||!(x>=0&&x<=100&&y>=0&&y<=100))return;
  t.x=x;t.y=y;{const L=LIVE[t.i]||(LIVE[t.i]={});L.t=Date.now();L.x=x;L.y=y}
  if(rtPerf()){const el=board.querySelector('.mtk[data-i="'+t.i+'"]');if(el){el.style.left=x+'%';el.style.top=y+'%'}fogDraw()}else moveEl(t);
 }
@@ -4289,6 +4289,7 @@ function rtSync(){
   rtCh=s.channel('mesa-'+want,{config:{broadcast:{self:false}}})
    .on('broadcast',{event:'sv'},rtKick)
    .on('broadcast',{event:'mv'},m=>rtMv(m&&m.payload))
+   .on('broadcast',{event:'mvg'},m=>{const p=m&&m.payload;if(p&&Array.isArray(p.k))p.k.slice(0,80).forEach(a=>{if(Array.isArray(a))rtMv({i:a[0],x:a[1],y:a[2]})})})
    .on('broadcast',{event:'la'},m=>rtLa(m&&m.payload))
    .on('postgres_changes',{event:'UPDATE',schema:'public',table:'campanhas',filter:'id=eq.'+want},rtKick)
    .subscribe(st=>{rtOk=(st==='SUBSCRIBED')});
@@ -4301,7 +4302,7 @@ document.addEventListener('visibilitychange',()=>{if(!document.hidden&&ST&&ST.op
 /* ---------- desenho ---------- */
 function applyTok(el,t){
  const im=t.m&&ST.img.im[t.m]||'';
- el.className='mtk f'+t.f+(t.t?' vez':'')+(t.d?' dead':'')+(t.gh?' gh':'')+(t.iv?' iv':'')+(t.ob?' ob':'')+(t.p?' pin':'')+(im?' img':'')+(t.lu&&!t.d?' lu':'')+(t.bot?' bt'+(t.bon?' bon':''):'')+(((t.doc&&t.ob)||pistaOk(t))?' dc':'')+(ST.sel===t.i?' sel':'')+(ST.sym&&ST.sym.includes(t.i)?' ssym':'')+(ST.rl&&ST.rl.on&&ST.rl.src===t.i?' rorg':'');
+ el.className='mtk f'+t.f+(t.t?' vez':'')+(t.d?' dead':'')+(t.gh?' gh':'')+(t.iv?' iv':'')+(t.ob?' ob':'')+(t.p?' pin':'')+(im?' img':'')+(t.lu&&!t.d?' lu':'')+(t.bot?' bt'+(t.bon?' bon':''):'')+(((t.doc&&t.ob)||pistaOk(t))?' dc':'')+(isSel(t.i)?' sel':'')+(msValid()&&ST.ms.includes(t.i)?' msel':'')+(ST.sym&&ST.sym.includes(t.i)?' ssym':'')+(ST.rl&&ST.rl.on&&ST.rl.src===t.i?' rorg':'');
  const dark=lum(t.c)>.6;
  el.style.cssText='--sz:'+szOf(t).toFixed(3)+';--c:'+t.c+';--tc:'+(dark?'#111':'#fff')+';--ts:'+(dark?'0 1px 0 rgba(255,255,255,.55)':'0 1px 2px rgba(0,0,0,.7)')+';left:'+t.x+'%;top:'+t.y+'%';
  el.dataset.i=t.i;
@@ -4315,18 +4316,18 @@ function paintBoard(){
  if(!board||!board.isConnected)return;
  if(sec){sec.style.setProperty('--bar',(1/AR()).toFixed(4));mwApply()}
  const bg=ST.img.bg;
- board.className='mboard'+(ST.d.g?' grid':'')+(bg?' hasbg':'')+(canMove()?' ed':'')+(ST.sym?' sym':'')+(ST.d.lc?' lc':'')+(ST.rl&&ST.rl.on?' rul':'')+(ST.master&&ST.cl?' bl':'')+(ST.master&&ST.pv?' pv':'');
+ board.className='mboard'+(ST.d.g?' grid':'')+(bg?' hasbg':'')+(canMove()?' ed':'')+(ST.sym?' sym':'')+(ST.mm?' msm':'')+(ST.d.lc?' lc':'')+(ST.rl&&ST.rl.on?' rul':'')+(ST.master&&ST.cl?' bl':'')+(ST.master&&ST.pv?' pv':'');
  board.innerHTML='';
  if(bg){const b=document.createElement('div');b.className='mbg';b.style.backgroundImage='url("'+iu(bg)+'")';board.appendChild(b);if(ST.d.g){const g=document.createElement('div');g.className='mgl';board.appendChild(g)}}
  ST.d.k.forEach(t=>{if(t.iv&&!(ST.master&&!ST.pv))return;const el=document.createElement('div');applyTok(el,t);board.appendChild(el)});
  if(!ST.d.k.length){const m=document.createElement('div');m.className='mempty';m.textContent=ST.master?'A mesa está vazia. Use “＋ Novo ícone” ou “Adicionar personagens”.':'O mestre ainda não colocou nada na mesa.';board.appendChild(m)}
  const D=dims();board.style.setProperty('--gx',D.cw+'%');board.style.setProperty('--gy',D.ch+'%');
- wallPaint();dKick();fogPaint();lampInit();paintList();syncTools();paintSym();paintPl();rulerDraw(true);uiLock();
+ wallPaint();dKick();fogPaint();lampInit();paintList();syncTools();paintSym();paintPl();rulerDraw(true);uiLock();msTool();
 }
 /* travar construções / ver como jogador: estado só da tela do mestre */
 function uiLock(){
  if(!sec||!ST||!ST.master)return;
- sec.querySelectorAll('[data-m=wall],[data-m=door],[data-m=fog]').forEach(b=>{b.disabled=!!ST.cl});
+ sec.querySelectorAll('[data-m=wall],[data-m=door],[data-m=fog],[data-m=maze],[data-m=mazedel]').forEach(b=>{b.disabled=!!ST.cl});
  const k=sec.querySelector('[data-m=blk]');if(k){k.setAttribute('aria-pressed',!!ST.cl);k.textContent=ST.cl?'🔓 Destravar construções':'🔒 Travar construções'}
  const v=sec.querySelector('[data-m=pv]');if(v){v.setAttribute('aria-pressed',!!ST.pv);v.textContent=ST.pv?'👁 Sair da visão do jogador':'👁 Ver como jogador'}
 }
@@ -4375,7 +4376,7 @@ function fogPaint(){
   board.appendChild(e)});
 }
 /* ---------- lanternas: cone de luz, brilhinhos, WASD ---------- */
-const spk={};let lraf=0,lq=0,lqL=0;
+const spk={};let lq=0,lqL=0;
 let dkm=100;try{const v=localStorage.getItem('sin-dkm');if(v!=null&&isFinite(+v))dkm=clamp(+v,0,100)}catch(e){}
 document.addEventListener('input',e=>{const x=e.target;if(!x||x.id!=='mdk')return;dkm=clamp(+x.value||0,0,100);try{localStorage.setItem('sin-dkm',String(dkm))}catch(_){}const o=document.getElementById('mdkv');if(o)o.textContent=dkm+'%';fogDraw()});
 let blz=1;try{const v=localStorage.getItem('sin-brilho-luz');if(v!=null&&isFinite(+v))blz=clamp(+v,1,4)}catch(e){}
@@ -4630,6 +4631,65 @@ addEventListener('input',e=>{
 });
 /* ---------- paredes: geometria, colisão, luz ---------- */
 const snp=(x,y)=>{if(!ST.d.sn)return[x,y];const D=dims();return[Math.round(clamp(Math.round(x/D.cw)*D.cw,0,100)*100)/100,Math.round(clamp(Math.round(y/D.ch)*D.ch,0,100)*100)/100]};
+/* ---------- LABIRINTO ALEATÓRIO: Shift+L libera os botões (só o mestre) ----------
+   É feito de paredes comuns da mesa (bloqueiam ícones e luz), com id "mz…". Os jogadores também enxergam
+   essas paredes e elas não têm alças de edição: para apagar, use o botão Remover labirinto. */
+var mzOn=false;
+function isMz(q){return !!q&&String(q.i).indexOf('mz')===0}
+function mazeBuild(k){
+ const D=dims(),gc=D.c,gr=Math.floor(D.r+1e-6),cols=Math.floor(gc/k),rows=Math.floor(gr/k);
+ if(cols<3||rows<3)return null;
+ const ox=Math.floor((gc-cols*k)/2),oy=Math.floor((gr-rows*k)/2);
+ const V=Array.from({length:rows},()=>Array(cols+1).fill(true)); /* V[y][x]: parede vertical na linha x, na altura da linha y */
+ const H=Array.from({length:rows+1},()=>Array(cols).fill(true)); /* H[y][x]: parede horizontal na linha y, na altura da coluna x */
+ const seen=Array.from({length:rows},()=>Array(cols).fill(false)),rn=n=>Math.floor(Math.random()*n);
+ const sx=rn(cols),sy=rn(rows),stk=[[sx,sy]];seen[sy][sx]=true;
+ while(stk.length){
+  const[x,y]=stk[stk.length-1],nb=[];
+  if(x>0&&!seen[y][x-1])nb.push([x-1,y,()=>{V[y][x]=false}]);
+  if(x<cols-1&&!seen[y][x+1])nb.push([x+1,y,()=>{V[y][x+1]=false}]);
+  if(y>0&&!seen[y-1][x])nb.push([x,y-1,()=>{H[y][x]=false}]);
+  if(y<rows-1&&!seen[y+1][x])nb.push([x,y+1,()=>{H[y+1][x]=false}]);
+  if(!nb.length){stk.pop();continue}
+  const[nx,ny,carve]=nb[rn(nb.length)];carve();seen[ny][nx]=true;stk.push([nx,ny]);
+ }
+ V[rn(rows)][0]=false;V[rn(rows)][cols]=false; /* entrada na esquerda e saída na direita */
+ const X=i=>Math.round((ox+i*k)*D.cw*100)/100,Y=i=>Math.round((oy+i*k)*D.ch*100)/100,out=[];
+ for(let y=0;y<=rows;y++){let x=0;while(x<cols){if(!H[y][x]){x++;continue}let e=x;while(e<cols&&H[y][e])e++;out.push([X(x),Y(y),X(e),Y(y)]);x=e}}
+ for(let x=0;x<=cols;x++){let y=0;while(y<rows){if(!V[y][x]){y++;continue}let e=y;while(e<rows&&V[e][x])e++;out.push([X(x),Y(y),X(x),Y(e)]);y=e}}
+ return out;
+}
+function mazeGen(){
+ if(!ST||!ST.master||ST.cl)return;
+ const keep=(ST.d.wl||[]).filter(q=>!isMz(q)),room=MAXW-keep.length,D=dims(),gr=Math.floor(D.r+1e-6);
+ let seg=null;
+ for(let k=1;k<=12&&!seg;k++){
+  if(Math.floor(D.c/k)>20||Math.floor(gr/k)>15)continue; /* quadrados maiores quando a mesa é grande, para o labirinto não ficar enorme */
+  const o=mazeBuild(k);if(!o)break;if(o.length<=room)seg=o;
+ }
+ if(!seg){ST.stat='Não deu para gerar o labirinto: a mesa está pequena demais ou há paredes demais (limite de '+MAXW+')';setStat();return}
+ let n=0;
+ ST.d.wl=keep.concat(seg.map(q=>({i:'mz'+(n++).toString(36)+uid().slice(0,3),x1:q[0],y1:q[1],x2:q[2],y2:q[3]})));
+ paintBoard();queue();SFX.p('wallAdd');
+ ST.stat='Labirinto gerado ('+seg.length+' paredes), com entrada na esquerda e saída na direita. Clique em Gerar de novo para sortear outro. Os ícones não foram movidos.';setStat();
+}
+function mazeDel(){
+ if(!ST||!ST.master||ST.cl)return;
+ const n=(ST.d.wl||[]).filter(isMz).length;
+ if(!n){ST.stat='Não há labirinto na mesa';setStat();return}
+ ST.d.wl=ST.d.wl.filter(q=>!isMz(q));paintBoard();queue();SFX.p('wallDel');
+ ST.stat='Labirinto removido ('+n+' paredes)';setStat();
+}
+addEventListener('keydown',e=>{
+ if(!e.shiftKey||e.ctrlKey||e.metaKey||e.altKey||e.repeat||String(e.key).toLowerCase()!=='l')return;
+ if(!ST||!ST.open||!ST.master||!sec||!board||!board.isConnected)return;
+ const tg=e.target;if(tg&&(/^(INPUT|TEXTAREA|SELECT)$/.test(tg.tagName)||tg.isContentEditable))return;
+ e.preventDefault();mzOn=!mzOn;
+ sec.querySelectorAll('[data-m=maze],[data-m=mazedel]').forEach(b=>{b.hidden=!mzOn});
+ const m=mzOn?'🌀 Gerador de labirinto liberado: use o botão Gerar labirinto (Shift+L esconde de novo)':'Gerador de labirinto escondido';
+ ST.stat=m;setStat();
+ const d=document.createElement('div');d.className='sintoast';d.setAttribute('role','status');d.textContent=m;document.body.appendChild(d);setTimeout(()=>d.remove(),3200);
+});
 /* alinhamento automático da ponta de uma parede: horizontal, vertical ou diagonal de 45° (Shift = ângulo livre) */
 function wStraight(nx,ny,ox,oy,free){
  if(free)return[nx,ny];
@@ -4663,7 +4723,7 @@ function wallBlock(t,x0,y0,x1,y1){
 }
 /* móvel: tem colisão. Ícones não o atravessam; ao arrastar um móvel, ele também não atravessa outros móveis nem ícones */
 const isMv=t=>!!(t&&t.ob&&t.mv&&!t.gh);
-function solidsFor(t){const mv=isMv(t);return ST.d.k.filter(m=>m!==t&&!m.gh&&(isMv(m)||(mv&&!m.ob&&!m.d)))}
+function solidsFor(t){const mv=isMv(t);return ST.d.k.filter(m=>m!==t&&!(GRP&&GRP.has(m))&&!m.gh&&(isMv(m)||(mv&&!m.ob&&!m.d)))}
 function solidHit(t,L,x,y){
  if(!L.length)return false;
  const A=AR(),tx=t.x,ty=t.y*A,nx=x,ny=y*A,rt=szOf(t)/2;
@@ -4699,18 +4759,6 @@ function visPoly(cx,cy,R,a,half,WL,center){
  ang.forEach(d=>{if(!full&&Math.abs(d)>half+1e-9)return;const th=a+d,dx=Math.cos(th),dy=Math.sin(th),h=rayHit(cx,cy,dx,dy,R,WL);pts.push([cx+dx*h.t,cy+dy*h.t])});
  return pts;
 }
-function clipPoly(g,pts){g.beginPath();pts.forEach((p,i)=>i?g.lineTo(p[0],p[1]):g.moveTo(p[0],p[1]));g.closePath();g.clip()}
-function coneW(g,cx,cy,a,R,half,rgb,k,WL){
- if(!WL.length){cone(g,cx,cy,a,R,half,rgb,k);return}
- const gr=g.createRadialGradient(cx,cy,0,cx,cy,R);gr.addColorStop(0,'rgba('+rgb+','+k+')');gr.addColorStop(.65,'rgba('+rgb+','+k*.8+')');gr.addColorStop(1,'rgba('+rgb+',0)');
- g.fillStyle=gr;
- g.save();clipPoly(g,visPoly(cx,cy,R,a,half,WL,true));g.beginPath();g.moveTo(cx,cy);g.arc(cx,cy,R,a-half,a+half);g.closePath();g.fill();g.restore();
-}
-function glowFill(g,cx,cy,r,stops,WL){
- g.save();if(WL.length)clipPoly(g,visPoly(cx,cy,r,0,Math.PI,WL,false));
- const q=g.createRadialGradient(cx,cy,0,cx,cy,r);stops.forEach(s=>q.addColorStop(s[0],s[1]));
- g.fillStyle=q;g.beginPath();g.arc(cx,cy,r,0,6.2832);g.fill();g.restore();
-}
 /* reflexo de um quique: raios que batem na parede voltam mais fracos */
 function bounce(cx,cy,a,half,R,WL){
  const full=half>=Math.PI-1e-6,n=Math.max(2,Math.ceil(2*half/(full?.105:.044))),out=[];let prev=null;
@@ -4738,10 +4786,10 @@ function wallPaint(){
  WC.clear();
  if(!board||!board.isConnected)return;const w=ST.d.wl||[];if(!w.length)return;
  board.insertAdjacentHTML('beforeend','<svg class="mws" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">'
-  +w.filter(q=>q.dr||(ST.master&&!ST.pv)).map(q=>{const S=wseg(q),a=' data-w="'+q.i+'" x1="'+S.x1+'" y1="'+S.y1+'" x2="'+S.x2+'" y2="'+S.y2+'"',dc=q.dr?' dr'+(q.k?' lk':''):'';return(q.dr?'<line class="wg0" data-g="'+q.i+'" x1="'+q.x1+'" y1="'+q.y1+'" x2="'+q.x2+'" y2="'+q.y2+'"/>':'')+'<line class="wo'+(q.t?' gl':'')+dc+'"'+a+'/><line class="wi'+(q.t?' gl':'')+(q.p?' pn':'')+dc+'"'+a+'/>'}).join('')+'</svg>');
+  +w.filter(q=>q.dr||isMz(q)||(ST.master&&!ST.pv)).map(q=>{const S=wseg(q),a=' data-w="'+q.i+'" x1="'+S.x1+'" y1="'+S.y1+'" x2="'+S.x2+'" y2="'+S.y2+'"',dc=q.dr?' dr'+(q.k?' lk':''):'';return(q.dr?'<line class="wg0" data-g="'+q.i+'" x1="'+q.x1+'" y1="'+q.y1+'" x2="'+q.x2+'" y2="'+q.y2+'"/>':'')+'<line class="wo'+(q.t?' gl':'')+dc+'"'+a+'/><line class="wi'+(q.t?' gl':'')+(q.p?' pn':'')+dc+'"'+a+'/>'}).join('')+'</svg>');
  if(!ST.master||ST.pv)return;
  const H=(q,k,cls,txt,ttl,x,y)=>'<span class="wh '+cls+(k!=='a'&&k!=='b'&&SH(q)?' sh':'')+'" data-w="'+q.i+'" data-k="'+k+'" title="'+ttl+'" style="left:'+x+'%;top:'+y+'%">'+txt+'</span>';
- board.insertAdjacentHTML('beforeend','<div class="mwh noprint">'+w.map(q=>{const mx=(q.x1+q.x2)/2,my=(q.y1+q.y2)/2;
+ board.insertAdjacentHTML('beforeend','<div class="mwh noprint">'+w.map(q=>{if(isMz(q))return'';const mx=(q.x1+q.x2)/2,my=(q.y1+q.y2)/2;
   const LK=q.dr?H(q,'lk','wl'+(q.k?' on':''),q.k?'🔒':'🔓',q.k?'Trancada: clique para destrancar':'Destrancada: clique para trancar',mx,my):'';const LD=q.dr?H(q,'ld','wk','🗝','Fechadura (lockpick): '+ldName(q)+'. Clique para mudar: Normal → Difícil → Muito difícil → Fácil → Sem lockpick',mx,my):'';if(q.p)return q.dr?H(q,'pn','wp','📌','Fixada: clique para soltar',mx,my)+LK+LD:H(q,'pn','wp solo','📌','Fixada: clique para soltar',mx,my);
   return H(q,'mv','wm','✥','Mover parede',mx,my)+H(q,'a','we','','Dimensionar',q.x1,q.y1)+H(q,'b','we','','Dimensionar',q.x2,q.y2)
    +H(q,'pn','wp','📌','Fixar parede',mx,my)+(q.dr?LK+LD+H(q,'fl','wf','⇄','Inverter o lado em que a porta abre',mx,my):H(q,'tr','wg'+(q.t?' on':''),'◐',q.t?'Parede transparente (vidro): clique para deixar opaca':'Tornar transparente (vidro): bloqueia ícones, mas a luz passa',mx,my))+H(q,'rm','wx','✕','Remover parede',mx,my)}).join('')+'</div>');
@@ -4994,7 +5042,7 @@ function paintList(){
    lab='<span class="mnum">'+(i+1)+'.</span><i'+(im?' style="background-image:url(\''+iu(im)+'\')"':'')+'></i><b>'+esc(nm)+'</b>'+(t.r!=null?'<span class="mrs" title="Iniciativa (Status)" aria-label="Iniciativa '+t.r+'">⚡ '+t.r+'</span>':'')+(t.t?'<span aria-hidden="true">⭐</span>':'')+(t.d?'<span aria-hidden="true">☠</span>':'')+(t.iv?'<span aria-hidden="true" title="Invisível na mesa">🙈</span>':'')+(t.p?'<span aria-hidden="true" title="Fixado">📌</span>':''),
    main=m?'<button type="button" class="mtn" data-m="pick" data-v="'+t.i+'">'+lab+'</button>':'<span class="mtn">'+lab+'</span>',
    ord=m?'<span class="mord noprint"><button type="button" data-m="up" data-v="'+t.i+'" aria-label="Subir '+esc(nm)+'"'+(i?'':' disabled')+'>↑</button><button type="button" data-m="dn" data-v="'+t.i+'" aria-label="Descer '+esc(nm)+'"'+(i<k.length-1?'':' disabled')+'>↓</button></span>':'';
-  return'<li class="mti'+(ST.sym&&ST.sym.includes(t.i)?' ssym':'')+(t.t?' vez':'')+(t.d?' dead':'')+(ST.sel===t.i?' sel':'')+'" style="--c:'+t.c+'" data-i="'+t.i+'"'+(t.t?' aria-current="true"':'')+'>'+main+ord+'</li>';
+  return'<li class="mti'+(ST.sym&&ST.sym.includes(t.i)?' ssym':'')+(t.t?' vez':'')+(t.d?' dead':'')+(isSel(t.i)?' sel':'')+'" style="--c:'+t.c+'" data-i="'+t.i+'"'+(t.t?' aria-current="true"':'')+'>'+main+ord+'</li>';
  }).join(''):'<li class="note">Nenhum ícone na mesa ainda.</li>';
  paintObjs();
 }
@@ -5005,7 +5053,7 @@ function paintObjs(){
   const nm=t.n||'Sem nome',im=t.m&&ST.img.im[t.m]||'',
    lab='<i'+(im?' style="background-image:url(\''+iu(im)+'\')"':'')+'></i><b>'+esc(nm)+'</b>'+(t.iv?'<span aria-hidden="true" title="Invisível na mesa">🙈</span>':'')+(t.p?'<span aria-hidden="true" title="Fixado">📌</span>':'')+(t.mv?'<span title="Móvel'+(t.pe?' · '+t.pe+' kg':'')+'">🪑'+(t.pe?' '+t.pe+' kg':'')+'</span>':'')+(t.oc?'<span title="Móvel oco · '+((t.bx||[]).length)+' item(ns)">📥'+((t.bx||[]).length?' '+t.bx.length:'')+'</span>':'')+(t.ele?'<span title="Elétrico'+(t.eat?'':' (sem atributo escolhido)')+'">⚡</span>':'')+(t.bot?'<span title="Botão · '+(t.bon?'ligado':'desligado')+'">'+(t.bon?'🟢':'🔘')+'</span>':''),
    sel='<select class="mfs" data-fs="'+t.i+'" title="Pasta do objeto" aria-label="Pasta do objeto '+esc(nm)+'"><option value="">Sem pasta</option>'+fd.map(f=>'<option value="'+f.i+'"'+(t.fo===f.i?' selected':'')+'>'+esc(f.n)+'</option>').join('')+'</select>';
-  return'<li class="mti mob'+(t.iv?' iv':'')+(ST.sel===t.i?' sel':'')+'" style="--c:'+t.c+'" data-i="'+t.i+'"><button type="button" class="mtn" data-m="pick" data-v="'+t.i+'">'+lab+'</button>'+sel+'</li>';
+  return'<li class="mti mob'+(t.iv?' iv':'')+(isSel(t.i)?' sel':'')+'" style="--c:'+t.c+'" data-i="'+t.i+'"><button type="button" class="mtn" data-m="pick" data-v="'+t.i+'">'+lab+'</button>'+sel+'</li>';
  };
  let h='<li class="mfnew"><button type="button" data-m="fnew" title="Cria uma pasta para organizar os objetos">📁 Nova pasta</button></li>';
  fd.forEach(f=>{
@@ -5035,7 +5083,7 @@ function toolsHtml(){
  +'<button type="button" data-m="inisort" title="Busca a iniciativa rolada nas fichas e ordena do maior para o menor">⚡ Ordenar por iniciativa</button>'
  +'<button type="button" data-m="iniclear" title="Zera as iniciativas da mesa para um novo combate">↺ Zerar iniciativas</button>'
  +'<button type="button" class="mseg" data-m="grid" aria-pressed="true">▦ Grade</button>'
- +'<button type="button" data-m="fog" title="Adiciona um bloco que esconde parte do mapa dos jogadores. Mova, redimensione ou remova pelos cantos do bloco.">🌫 Bloco de névoa</button>'+'<button type="button" data-m="wall" title="Adiciona uma parede reta: as pontas se alinham sozinhas na horizontal, na vertical e na diagonal de 45° (segure Shift para ângulo livre). Arraste ✥ para mover, as bolinhas azuis para dimensionar e 📌 para fixar. Paredes bloqueiam ícones e luz; o botão ◐ torna a parede transparente (vidro: bloqueia ícones, mas deixa a luz passar).">🧱 Parede</button>'+'<button type="button" class="mseg" data-m="blk" aria-pressed="'+(!!ST.cl)+'" title="Desabilita os botões das construções (✥ 📌 ◐ ✕ ⇄ 🔒 e os cantos de redimensionar) e os botões Parede, Porta e Bloco de névoa, para não mexer sem querer. Só afeta a sua tela.">'+(ST.cl?'🔓 Destravar construções':'🔒 Travar construções')+'</button>'+'<button type="button" data-m="door" title="Adiciona uma porta: parede que abre e fecha com física própria. Clique nela, ou aperte E com a lanterna ligada perto dela. 🔒 tranca e 📌 fixa.">🚪 Porta</button>'+'<button type="button" class="mseg mdark" data-m="dark" aria-pressed="'+(!!ST.d.dk)+'" title="Escurece toda a mesa: só aparece o que for iluminado por lanternas ou ícones iluminados. Só o mestre controla.">🌑 Modo escuro</button>'+'<button type="button" class="mseg" data-m="lc" aria-pressed="'+(!!ST.d.lc)+'" title="Liga as luzes coloridas: a lanterna fica amarelada e os ícones iluminados brilham na cor deles. Desligado, a luz é quase branca e discreta. Vale para todos na mesa.">🌈 Luzes coloridas</button>'+'<label class="mscale" title="Só para você, mestre: o quanto a mesa fica escura na SUA tela no modo escuro. Os jogadores sempre veem tudo preto.">🌗 Minha escuridão<input type="range" id="mdk" min="0" max="100" step="5" value="'+dkm+'" aria-label="Escuridão da mesa só para o mestre"><output id="mdkv" for="mdk">'+dkm+'%</output></label>'+bzHtml()
+ +'<button type="button" data-m="fog" title="Adiciona um bloco que esconde parte do mapa dos jogadores. Mova, redimensione ou remova pelos cantos do bloco.">🌫 Bloco de névoa</button>'+'<button type="button" data-m="wall" title="Adiciona uma parede reta: as pontas se alinham sozinhas na horizontal, na vertical e na diagonal de 45° (segure Shift para ângulo livre). Arraste ✥ para mover, as bolinhas azuis para dimensionar e 📌 para fixar. Paredes bloqueiam ícones e luz; o botão ◐ torna a parede transparente (vidro: bloqueia ícones, mas deixa a luz passar).">🧱 Parede</button>'+'<button type="button" class="mseg" data-m="blk" aria-pressed="'+(!!ST.cl)+'" title="Desabilita os botões das construções (✥ 📌 ◐ ✕ ⇄ 🔒 e os cantos de redimensionar) e os botões Parede, Porta e Bloco de névoa, para não mexer sem querer. Só afeta a sua tela.">'+(ST.cl?'🔓 Destravar construções':'🔒 Travar construções')+'</button>'+'<button type="button" data-m="door" title="Adiciona uma porta: parede que abre e fecha com física própria. Clique nela, ou aperte E com a lanterna ligada perto dela. 🔒 tranca e 📌 fixa.">🚪 Porta</button>'+'<button type="button" data-m="maze"'+(mzOn?'':' hidden')+' title="Sorteia um labirinto de paredes na mesa, alinhado à grade. Os jogadores veem as paredes e elas bloqueiam ícones e luz. Gerar de novo troca o labirinto anterior. Shift+L esconde este botão.">🌀 Gerar labirinto</button>'+'<button type="button" data-m="mazedel"'+(mzOn?'':' hidden')+' title="Remove só as paredes do labirinto. As outras paredes e portas ficam.">🧹 Remover labirinto</button>'+'<button type="button" class="mseg mdark" data-m="dark" aria-pressed="'+(!!ST.d.dk)+'" title="Escurece toda a mesa: só aparece o que for iluminado por lanternas ou ícones iluminados. Só o mestre controla.">🌑 Modo escuro</button>'+'<button type="button" class="mseg" data-m="lc" aria-pressed="'+(!!ST.d.lc)+'" title="Liga as luzes coloridas: a lanterna fica amarelada e os ícones iluminados brilham na cor deles. Desligado, a luz é quase branca e discreta. Vale para todos na mesa.">🌈 Luzes coloridas</button>'+'<label class="mscale" title="Só para você, mestre: o quanto a mesa fica escura na SUA tela no modo escuro. Os jogadores sempre veem tudo preto.">🌗 Minha escuridão<input type="range" id="mdk" min="0" max="100" step="5" value="'+dkm+'" aria-label="Escuridão da mesa só para o mestre"><output id="mdkv" for="mdk">'+dkm+'%</output></label>'+bzHtml()
  +'<button type="button" class="mseg" data-m="pm" aria-pressed="'+(!!ST.d.pm)+'" title="Quando ligado, os jogadores também podem arrastar os ícones (exige a função mover_icones no banco)">🖐 Jogadores movem ícones</button>'
  +'<button type="button" class="mseg" data-m="pin" aria-pressed="false" disabled title="Selecione um ícone e clique aqui para fixá-lo no mapa: ele não será mais arrastado até você soltar">📌 Fixar ícone</button>'
  +rlUi()+'<label class="mscale" title="Mesa maior = ícones menores, cabe mais coisa">📐 Tamanho da mesa<input type="range" id="mcols" min="0" max="'+(COLSET.length-1)+'" step="1" value="'+ci()+'" aria-label="Tamanho da mesa: quanto maior, menores ficam os ícones"><output id="mcolsv" for="mcols">'+dimTxt()+'</output></label>'
@@ -5085,7 +5133,7 @@ function syncPin(){
 function buildEditor(){
  const box=sec&&sec.querySelector('.medw');if(box&&!ST.master){lightPanel();return}if(!box||!ST.master)return;
  const t=ST.sel&&tokOf(ST.sel);
- syncPin();
+ syncPin();if(msGroupPanel(box)){lampSync();return}
  if(!t){box.innerHTML='<p class="note">Toque num ícone para trocar a cor, o nome e o tamanho. Arraste para mover.</p>';return}
  box.innerHTML='<div class="med noprint">'
  +'<div class="mg"><label class="mnm">Nome<input id="mnome" maxlength="14" autocomplete="off" value="'+esc(t.n)+'"></label><label class="mnm" style="flex:0 1 150px">Iniciativa'+(t.u?' (da ficha)':'')+'<input id="mini" type="number" inputmode="numeric" step="1" placeholder="—" value="'+(t.r==null?'':t.r)+'"></label></div>'
@@ -5116,12 +5164,132 @@ function paintAll(){
  board=sec.querySelector('.mboard');
  paintErr();paintBoard();buildEditor();setStat();paintLib();libSched();
 }
+/* ---------- SELEÇÃO MÚLTIPLA ----------
+   Shift/Ctrl/Cmd + clique, retângulo (arrastar no espaço vazio) ou botão "Selecionar vários" (toque).
+   Arrastar qualquer ícone selecionado move o grupo todo, sem perder a formação; as setas do teclado também movem o grupo.
+   ST.sel continua sendo o ícone "principal" (o que o editor mostra); ST.ms é a lista completa quando há 2 ou mais. */
+let GRP=null,mq=null;
+function msValid(){return !!(ST&&ST.ms&&ST.ms.length>1&&ST.sel&&ST.ms.includes(ST.sel))}
+function msList(){if(!msValid())return[];const r=ST.ms.map(tokOf).filter(Boolean);return r.length>1?r:[]}
+function isSel(id){return ST.sel===id||(msValid()&&ST.ms.includes(id))}
+function curIds(){return msValid()?ST.ms.filter(i=>tokOf(i)):(ST.sel&&tokOf(ST.sel)?[ST.sel]:[])}
+function msPaint(){
+ if(board&&board.isConnected){const on=msValid();board.querySelectorAll('.mtk').forEach(e=>{const i=e.dataset.i,k=on&&ST.ms.includes(i);e.classList.toggle('sel',ST.sel===i||k);e.classList.toggle('msel',k)})}
+ paintList();
+}
+function msStat(){if(msValid()){ST.stat=ST.ms.length+' ícones selecionados: arraste um deles para mover todos juntos (Esc cancela)';setStat()}}
+function msSet(ids,prim){
+ ids=ids.filter((v,i,a)=>a.indexOf(v)===i&&tokOf(v));
+ if(ids.length>1){ST.ms=ids;ST.sel=ids.includes(prim)?prim:ids[ids.length-1]}else{ST.ms=null;ST.sel=ids[0]||null}
+ msPaint();buildEditor();lampSync();msStat();
+}
 function select(id){
- if(ST.sel===id)return;
- ST.sel=id;
- board.querySelectorAll('.mtk').forEach(e=>e.classList.toggle('sel',e.dataset.i===id));
+ if(ST.sel===id&&!msValid()){ST.ms=null;return}
+ ST.sel=id;ST.ms=null;
+ board.querySelectorAll('.mtk').forEach(e=>{e.classList.toggle('sel',e.dataset.i===id);e.classList.remove('msel')});
  paintList();buildEditor();lampSync();
 }
+function msGroupPanel(box){
+ if(!msValid())return false;
+ box.innerHTML='<div class="med noprint"><div class="mg" role="group" aria-label="Seleção múltipla"><b class="t">Seleção</b><span><b>'+msList().length+'</b> ícones selecionados</span><button type="button" data-m="msclr">✕ Cancelar seleção</button></div><p class="note" style="margin:0">Arraste qualquer ícone selecionado para mover todos juntos (as setas do teclado também movem o grupo). Para editar um ícone, clique nele sem Shift/Ctrl.</p></div>';
+ return true;
+}
+/* botão "Selecionar vários": inserido por aqui para aparecer também para jogadores com permissão de mover */
+function msTool(){
+ const bar=sec&&sec.querySelector('.mtools');if(!bar)return;
+ let b=bar.querySelector('[data-m=msel]');
+ if(!canMove()){if(b)b.remove();return}
+ if(!b){
+  b=document.createElement('button');b.type='button';b.className='mseg';b.dataset.m='msel';b.textContent='☑ Selecionar vários';
+  b.title='Modo de seleção múltipla (ideal no celular): toque nos ícones para marcar/desmarcar e arraste no espaço vazio para selecionar vários de uma vez. No computador também dá com Shift/Ctrl + clique ou arrastando um retângulo no espaço vazio.';
+  const a=bar.querySelector('[data-m=add]');bar.insertBefore(b,a?a.nextSibling:bar.firstChild);
+ }
+ b.setAttribute('aria-pressed',!!ST.mm);
+}
+/* retângulo de seleção */
+function mqStart(e){
+ mq={pid:e.pointerId,sx:e.clientX,sy:e.clientY,r:board.getBoundingClientRect(),add:!!(e.shiftKey||e.ctrlKey||e.metaKey||ST.mm),base:curIds(),moved:false,hit:[]};
+ try{board.setPointerCapture(e.pointerId)}catch(_){}
+ e.preventDefault();
+}
+function mqHits(l,t,r,b){
+ const A=AR(),vis=ST.master&&!ST.pv;
+ return ST.d.k.filter(o=>{
+  if(o.p||(o.iv&&!vis))return false;
+  const h=szOf(o)/2,v=h/A;
+  return o.x+h>=l&&o.x-h<=r&&o.y+v>=t&&o.y-v<=b;
+ }).map(o=>o.i);
+}
+function mqMove(e){
+ if(!mq||e.pointerId!==mq.pid)return;
+ if(!mq.moved&&Math.hypot(e.clientX-mq.sx,e.clientY-mq.sy)<5)return;
+ mq.moved=true;
+ const r=mq.r,px=v=>clamp((v-r.left)/r.width*100,0,100),py=v=>clamp((v-r.top)/r.height*100,0,100);
+ const x1=px(mq.sx),y1=py(mq.sy),x2=px(e.clientX),y2=py(e.clientY),l=Math.min(x1,x2),t=Math.min(y1,y2),w=Math.abs(x2-x1),h=Math.abs(y2-y1);
+ let o=board.querySelector('.mmq');if(!o){o=document.createElement('div');o.className='mmq';board.appendChild(o)}
+ o.style.cssText='left:'+l+'%;top:'+t+'%;width:'+w+'%;height:'+h+'%';
+ mq.hit=mqHits(l,t,l+w,t+h);
+ const all=new Set(mq.add?mq.base.concat(mq.hit):mq.hit);
+ board.querySelectorAll('.mtk').forEach(el=>{const on=all.has(el.dataset.i);el.classList.toggle('msel',on);el.classList.toggle('sel',on)});
+}
+function mqEnd(e){
+ const m=mq;if(!m||e.pointerId!==m.pid)return;mq=null;
+ const o=board&&board.querySelector('.mmq');if(o)o.remove();
+ try{board.releasePointerCapture(e.pointerId)}catch(_){}
+ if(e.type==='pointercancel'){msPaint();return}
+ if(!m.moved){if(!m.add)select(null);return}
+ const ids=m.add?m.base.concat(m.hit):m.hit;
+ if(ids.length)msSet(ids,ids[ids.length-1]);else if(!m.add)select(null);else msPaint();
+}
+/* movimento rígido do grupo: (dx,dy) é o deslocamento desejado desde o início do arraste; (cx,cy) o último aceito.
+   Respeita as bordas da mesa (o grupo inteiro) e as paredes (se UM ícone bateria numa parede, o grupo não passa). */
+function grpDelta(g,dx,dy,cx,cy,skip){
+ const A=AR();let lx=-1e9,hx=1e9,ly=-1e9,hy=1e9;
+ g.forEach(m=>{const h=szOf(m.t)/2,v=h/A;lx=Math.max(lx,h-m.x0);hx=Math.min(hx,100-h-m.x0);ly=Math.max(ly,v-m.y0);hy=Math.min(hy,100-v-3.5-m.y0)});
+ dx=Math.min(hx,Math.max(lx,dx));dy=Math.min(hy,Math.max(ly,dy));
+ const ok=(a,b)=>g.every(m=>{const p=wallFit(m.t,[m.x0+a,m.y0+b],skip);return Math.abs(p[0]-(m.x0+a))<1e-6&&Math.abs(p[1]-(m.y0+b))<1e-6});
+ GRP=new Set(g.map(m=>m.t));
+ try{
+  if(ok(dx,dy))return[dx,dy];
+  if(ok(dx,cy))return[dx,cy];
+  if(ok(cx,dy))return[cx,dy];
+ }finally{GRP=null}
+ return[cx,cy];
+}
+function rtGroupSend(g,force){
+ const n=Date.now();if(!force&&n-rtMT<70)return;rtMT=n;
+ rtSend('mvg',{k:g.map(m=>[m.t.i,Math.round(m.t.x*100)/100,Math.round(m.t.y*100)/100])});
+}
+function moveGroup(ms,dx,dy){
+ const g=ms.filter(o=>!o.p).map(o=>({t:o,x0:o.x,y0:o.y}));
+ if(!g.length){ST.stat='Ícones fixados: solte-os para mover';setStat();SFX.p('locked');return}
+ const[nx,ny]=grpDelta(g,dx,dy,0,0,false);
+ g.forEach(m=>{m.t.x=m.x0+nx;m.t.y=m.y0+ny;moveEl(m.t)});
+ rtGroupSend(g,true);queue();SFX.p(Math.abs(nx)<1e-9&&Math.abs(ny)<1e-9?'bump':'step');
+}
+function grpDown(e,t,el){
+ const add=!!(e.shiftKey||e.ctrlKey||e.metaKey||ST.mm),cur=curIds(),inSel=cur.includes(t.i);
+ const ids=(add&&!inSel)?cur.concat(t.i):cur;
+ msSet(ids.filter(i=>{const o=tokOf(i);return o&&(!o.p||i===t.i)}),t.i);
+ mdClear();if(drag){try{drag.el.classList.remove('drag')}catch(_){}drag=null}
+ const g=curIds().map(tokOf).filter(o=>o&&!o.p).map(o=>({t:o,el:board.querySelector('.mtk[data-i="'+o.i+'"]'),x0:o.x,y0:o.y})).filter(m=>m.el);
+ drag={t,el,pid:e.pointerId,sx:e.clientX,sy:e.clientY,moved:false,x0:t.x,y0:t.y,g,gdx:0,gdy:0,tog:add&&inSel,col:!add&&inSel};
+ g.forEach(m=>m.el.classList.add('drag'));
+ try{board.setPointerCapture(e.pointerId)}catch(_){}
+ e.preventDefault();
+}
+addEventListener('keydown',e=>{
+ if(e.key!=='Escape'||!ST||!ST.open||!board||!board.isConnected)return;
+ const tg=e.target;if(tg&&(/^(INPUT|TEXTAREA|SELECT)$/.test(tg.tagName)||tg.isContentEditable))return;
+ if(mq){mq=null;const o=board.querySelector('.mmq');if(o)o.remove();msPaint();return}
+ if(msValid())select(null);
+});
+{const c=document.createElement('style');c.textContent=`
+#mesaSec .mtk.msel{z-index:4}
+#mesaSec .mtk.msel .mb{outline:max(2px,calc(var(--sz)*.09cqw)) dashed #22d3ee;outline-offset:max(2px,calc(var(--sz)*.1cqw));box-shadow:0 0 0 max(1px,calc(var(--sz)*.045cqw)) #000,0 0 calc(var(--sz)*.35cqw) calc(var(--sz)*.06cqw) rgba(34,211,238,.75)}
+#mesaSec .mtk.msel.f3.img .mb{box-shadow:none;outline-offset:0}
+#mesaSec .mmq{position:absolute;z-index:26;pointer-events:none;box-sizing:border-box;border:2px dashed #22d3ee;background:rgba(34,211,238,.16);border-radius:4px}
+#mesaSec .mboard.msm{touch-action:none;cursor:crosshair}`;document.head.appendChild(c)}
 const refresh=t=>{const el=board.querySelector('.mtk[data-i="'+t.i+'"]');if(el)applyTok(el,t);paintList();fogDraw()};
 
 /* ---------- ações do mestre ---------- */
@@ -5625,6 +5793,8 @@ function onClick(e){
  else if(a==='players')openPlayers();
  else if(a==='plref')loadPlayers();
  else if(a==='plx'){if(ST.pl){ST.pl.open=false;ST.pl.sig='';paintPl()}}
+ else if(a==='msel'){ST.mm=!ST.mm;b.setAttribute('aria-pressed',!!ST.mm);if(board)board.classList.toggle('msm',!!ST.mm);ST.stat=ST.mm?'Seleção múltipla ligada: toque nos ícones para marcar/desmarcar e arraste no espaço vazio para selecionar vários':'Seleção múltipla desligada';setStat()}
+ else if(a==='msclr'){select(null)}
  else if(a==='ruler')rulerToggle();
  else if(a==='mdist'){const on=!mdOn();try{localStorage.setItem(MDK,on?'1':'0')}catch(_){}b.setAttribute('aria-pressed',on);if(!on)mdClear()}
  else if(a==='bg'){const f=sec.querySelector('#mbgf');if(f)f.click()}
@@ -5661,7 +5831,8 @@ function onClick(e){
  else if(a==='symok')symMerge();
  else if(a==='inisort')iniPull(true);
  else if(a==='iniclear'){if(!confirm('Zerar as iniciativas da mesa?\n\nRolagens antigas das fichas serão ignoradas até serem roladas de novo.'))return;ST.d.ic=Date.now();ST.d.k.forEach(o=>{o.r=undefined;o.ra=undefined});ST.stat='Iniciativas zeradas';paintBoard();setStat();queue()}
- else if(a==='door'){if(!ST.master)return;ST.d.wl=ST.d.wl||[];if(ST.d.wl.length>=60){ST.stat='Limite de 60 paredes e portas';setStat();return}const [x1,y1]=snp(40,50),[x2,y2]=snp(60,50);ST.d.wl.push({i:'w'+uid(),x1,y1,x2,y2,dr:1});paintBoard();SFX.p('wallAdd');ST.stat='Porta criada: a dobradiça fica na bolinha azul da esquerda. Clique nela (ou E com a lanterna ligada) para abrir. 🔒 tranca, 📌 fixa, ⇄ inverte o lado';setStat();queue()}else if(a==='wall'){if(!ST.master)return;ST.d.wl=ST.d.wl||[];if(ST.d.wl.length>=60){ST.stat='Limite de 60 paredes';setStat();return}const [x1,y1]=snp(40,50),[x2,y2]=snp(60,50);ST.d.wl.push({i:'w'+uid(),x1,y1,x2,y2});paintBoard();SFX.p('wallAdd');ST.stat='Parede criada: ✥ move, bolinhas azuis dimensionam, 📌 fixa, ◐ deixa transparente (vidro: bloqueia ícones, mas a luz passa). Alt ao arrastar um ícone atravessa paredes. As pontas se alinham sozinhas (Shift libera o ângulo)';setStat();queue()}
+ else if(a==='door'){if(!ST.master)return;ST.d.wl=ST.d.wl||[];if(ST.d.wl.length>=MAXW){ST.stat='Limite de '+MAXW+' paredes e portas';setStat();return}const [x1,y1]=snp(40,50),[x2,y2]=snp(60,50);ST.d.wl.push({i:'w'+uid(),x1,y1,x2,y2,dr:1});paintBoard();SFX.p('wallAdd');ST.stat='Porta criada: a dobradiça fica na bolinha azul da esquerda. Clique nela (ou E com a lanterna ligada) para abrir. 🔒 tranca, 📌 fixa, ⇄ inverte o lado';setStat();queue()}else if(a==='wall'){if(!ST.master)return;ST.d.wl=ST.d.wl||[];if(ST.d.wl.length>=MAXW){ST.stat='Limite de '+MAXW+' paredes';setStat();return}const [x1,y1]=snp(40,50),[x2,y2]=snp(60,50);ST.d.wl.push({i:'w'+uid(),x1,y1,x2,y2});paintBoard();SFX.p('wallAdd');ST.stat='Parede criada: ✥ move, bolinhas azuis dimensionam, 📌 fixa, ◐ deixa transparente (vidro: bloqueia ícones, mas a luz passa). Alt ao arrastar um ícone atravessa paredes. As pontas se alinham sozinhas (Shift libera o ângulo)';setStat();queue()}
+ else if(a==='maze'){mazeGen()}else if(a==='mazedel'){mazeDel()}
  else if(a==='lc'){if(!ST.master)return;ST.d.lc=ST.d.lc?0:1;b.setAttribute('aria-pressed',!!ST.d.lc);paintBoard();ST.stat=ST.d.lc?'Luzes coloridas ligadas':'Luzes discretas (quase brancas)';setStat();queue()}else if(a==='dark'){if(!ST.master)return;ST.d.dk=ST.d.dk?0:1;b.setAttribute('aria-pressed',!!ST.d.dk);fogDraw();ST.stat=ST.d.dk?'Modo escuro ligado: só aparece o que for iluminado':'Modo escuro desligado';setStat();queue()}
  else if(!t)return;
  else if(a==='glow'){t.lu=t.lu?undefined:1;refresh(t);lampSync();queue()}
@@ -6271,7 +6442,7 @@ function onKey(e){
  const D=dims(),cw=D.cw,ch=D.ch,k=e.key;
  if(ST.sym){if(k==='Enter'||k===' '){e.preventDefault();symToggle(t.i)}return}
  const d={ArrowLeft:[-cw,0],ArrowRight:[cw,0],ArrowUp:[0,-ch],ArrowDown:[0,ch]}[k];
- if(d){e.preventDefault();select(t.i);move(t,d[0],d[1])}
+ if(d){e.preventDefault();const g0=msList();if(g0.includes(t))moveGroup(g0,d[0],d[1]);else{select(t.i);move(t,d[0],d[1])}}
  else if(k==='Enter'||k===' '){e.preventDefault();select(t.i)}
  else if(ST.master&&!ST.pv&&(k==='Delete'||k==='Backspace')){e.preventDefault();removeTok(t)}
 }
@@ -6294,8 +6465,14 @@ function onDown(e){
  if(!canMove()||e.button>0||ST.lit||(e.target.closest&&e.target.closest('.mlbtn')))return;
  const el=e.target.closest('.mtk');
  if(ST.sym){if(el){const t0=tokOf(el.dataset.i);if(t0)symToggle(t0.i);e.preventDefault()}return}
- if(!el){select(null);return}
+ if(!el){
+  /* espaço vazio da mesa: começa o retângulo de seleção (mouse sempre; toque só no modo "Selecionar vários") */
+  if(e.target===board&&!(ST.rl&&ST.rl.on)&&(e.pointerType!=='touch'||ST.mm)){mqStart(e);return}
+  select(null);return}
  const t=tokOf(el.dataset.i);if(!t)return;
+ const mod=e.shiftKey||e.ctrlKey||e.metaKey;
+ if(t.p&&mod){ST.stat='Ícone fixado: solte-o para selecionar e mover';setStat();return}
+ if(!t.p&&(mod||ST.mm||(msValid()&&ST.ms.includes(t.i)))){grpDown(e,t,el);return}
  select(t.i);
  if(t.p){
   if(t.ob&&(t.oc||t.bot||t.doc||pistaOk(t))){mdClear();drag={t,el,pid:e.pointerId,sx:e.clientX,sy:e.clientY,moved:false,x0:t.x,y0:t.y,fix:1};try{board.setPointerCapture(e.pointerId)}catch(_){}e.preventDefault();return}
@@ -6305,18 +6482,37 @@ function onDown(e){
  el.classList.add('drag');e.preventDefault();
 }
 function onMove(e){
+ if(mq){mqMove(e);return}
  if(!drag||e.pointerId!==drag.pid)return;
  if(drag.fix)return;if(!drag.moved&&Math.hypot(e.clientX-drag.sx,e.clientY-drag.sy)<4)return;
  drag.moved=true;
- const r=board.getBoundingClientRect(),[x,y]=wallFit(drag.t,fit(drag.t,(e.clientX-r.left)/r.width*100,(e.clientY-r.top)/r.height*100),e.altKey&&ST.master);
+ const r=board.getBoundingClientRect();
+ if(drag.g){
+  /* grupo: o ícone que você segura manda (inclusive o encaixe na grade); os outros acompanham o mesmo deslocamento */
+  const P=fit(drag.t,drag.x0+(e.clientX-drag.sx)/r.width*100,drag.y0+(e.clientY-drag.sy)/r.height*100);
+  const D=grpDelta(drag.g,P[0]-drag.x0,P[1]-drag.y0,drag.gdx,drag.gdy,e.altKey&&ST.master);
+  drag.gdx=D[0];drag.gdy=D[1];
+  drag.g.forEach(m=>{m.t.x=m.x0+D[0];m.t.y=m.y0+D[1];m.el.style.left=m.t.x+'%';m.el.style.top=m.t.y+'%'});
+  rtGroupSend(drag.g);
+  if(drag.g.some(m=>m.t.lt||m.t.lu))fogDraw();
+  mdDraw(drag);return;
+ }
+ const [x,y]=wallFit(drag.t,fit(drag.t,(e.clientX-r.left)/r.width*100,(e.clientY-r.top)/r.height*100),e.altKey&&ST.master);
  drag.t.x=x;drag.t.y=y;drag.el.style.left=x+'%';drag.el.style.top=y+'%';rtDragSend(drag.t);
  if(drag.t.lt||drag.t.lu)fogDraw();
  mdDraw(drag);
 }
 function onUp(e){
+ if(mq){mqEnd(e);return}
  if(!drag||e.pointerId!==drag.pid)return;
- drag.el.classList.remove('drag');
- const mv=drag.moved,tk=drag.t;drag=null;if(mv){rtDragSend(tk,true);mdFinish();queue()}else if(tk.ob&&!ST.sym){if(pistaOk(tk))pistaOpen(tk);else if(tk.oc)boxOpen(tk);else if(tk.bot)btnPress(tk);else if(tk.doc)docOpen(tk)}
+ const d=drag;drag=null;
+ d.el.classList.remove('drag');if(d.g)d.g.forEach(m=>{try{m.el.classList.remove('drag')}catch(_){}});
+ const mv=d.moved,tk=d.t;
+ if(mv){if(d.g)rtGroupSend(d.g,true);else rtDragSend(tk,true);mdFinish();queue()}
+ else if(d.tog){const ids=curIds().filter(i=>i!==tk.i);msSet(ids,ids[ids.length-1])}   /* toque num já selecionado: tira da seleção */
+ else if(d.col){select(tk.i)}                                                         /* clique sem arrastar num do grupo: fica só ele */
+ else if(d.g){}
+ else if(tk.ob&&!ST.sym){if(pistaOk(tk))pistaOpen(tk);else if(tk.oc)boxOpen(tk);else if(tk.bot)btnPress(tk);else if(tk.doc)docOpen(tk)}
 }
 
 /* ---------- integração com a página da campanha ---------- */
@@ -8402,7 +8598,6 @@ window.__sinPrisDone=()=>{
 if(window.__sinPrism2)return;window.__sinPrism2=1;
 const R=document.documentElement;
 const BT='button:where(:not(.star,.d20,.mo,.mod,.wbtn,.thi,.ctile,.ci,.pkb,.pkc,.nm))';
-const CY='#00e5ff',MG='#ff2bd6';
 const SP='linear-gradient(90deg,#ff3b5c,#ff9f1c,#ffe14d,#3dff8a,#3dd5ff,#5b6bff,#c24bff)';
 const css=String.raw`
 @P .prx{display:none!important}
@@ -13937,7 +14132,7 @@ const rgba=(h,a)=>'rgba('+rgb(h).join(',')+','+a+')';
 const hard=(cols,dir,al)=>{const n=cols.length,p=[];cols.forEach((c,i)=>{const k=al==null?c:rgba(c,al);p.push(k+' '+(i/n*100)+'% '+((i+1)/n*100)+'%')});return'linear-gradient('+dir+','+p.join(',')+')'};
 const soft=cols=>'linear-gradient(90deg,'+cols.map(vis).join(',')+')';
 const A=':is('+FLAGS.map(f=>'[data-tema="'+f[0]+'"]').join(',')+')';
-const vars=FLAGS.map(([id,nome,cs,ac,bs,ex])=>{
+const vars=FLAGS.map(([id,,cs,ac,bs,ex])=>{
  const on=lum(ac)>.55?'#101010':'#ffffff',sel='html[data-tema="'+id+'"]';
  let o=sel+'{--bs:'+bs+';--ac:'+ac+';--sg:'+ac+';--mc:'+ac+';--on:'+on+';--pn:'+rgba(bs,.88)+';--pn2:'+mix(bs,'#ffffff',.1)+';--ln:'+mix(bs,ac,.42)+';--fgh:'+hard(cs,'90deg')+';--fgs:'+soft(cs)+';--bgf:'+(ex?ex+',':'')+hard(cs,'180deg',.2)+' fixed,'+bs+'}';
  cs.forEach((c,i)=>{o+='\n'+sel+' main>section:nth-child('+cs.length+'n+'+(i+1)+'){--sec:'+vis(c)+'}'});
@@ -13968,9 +14163,9 @@ html:not([`+ATTR+String.raw`]) .thpop :is(`+FLAGS.map(f=>'[data-t="'+f[0]+'"]').
 @A .thpop .thi{color:var(--tx)}
 @A .tip::after{background:var(--bs);border-color:var(--ac)}
 @media(prefers-reduced-motion:reduce){@A :is(h1,#menu .mt){animation:none}}
-html[data-perf] @A :is(h1,#menu .mt){animation:none}
-`.replace(/@A/g,'html'+A).replace(/@X/g,BX);
-const st=document.createElement('style');st.id='sin-bandeiras';st.textContent=css;document.head.appendChild(st);
+@P :is(h1,#menu .mt){animation:none}
+`.replace(/@P/g,'html[data-perf]'+A).replace(/@A/g,'html'+A).replace(/@X/g,BX);
+const st=document.createElement('style');st.textContent=css;document.head.appendChild(st);
 
 const un=()=>{try{return localStorage.getItem(KEY)==='1'}catch(e){return false}};
 const flag=()=>R.toggleAttribute(ATTR,un());flag();
