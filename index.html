@@ -4185,10 +4185,27 @@ function queue(){
  if(!canMove())return;if(!ST.master)ST.dirty=1;if(ST.master&&ST.prep){ST.pdirty=1;try{dispatchEvent(new Event('sin-prep'))}catch(_){}}
  ST.qAt=Date.now();ST.stat='Salvando…';setStat();clearTimeout(svT);svT=setTimeout(flush,120);libSched();
 }
+/* evita que o salvamento do jogador sobrescreva o que outros salvaram (paredes, labirinto, ícones dos outros):
+   busca o estado mais recente do banco e aplica por cima só o que ESTE jogador mudou desde a última sincronização */
+const cnz=v=>{if(v===undefined)return'';if(v===null||typeof v!=='object')return JSON.stringify(v);if(Array.isArray(v))return'['+v.map(cnz).join(',')+']';return'{'+Object.keys(v).filter(k=>v[k]!==undefined).sort().map(k=>JSON.stringify(k)+':'+cnz(v[k])).join(',')+'}'};
+async function mergeFresh(me,s){
+ if(!me.raw)throw 0;
+ const r=await s.from('campanhas').select('mesa').eq('id',me.cid).maybeSingle();
+ if(r.error||!r.data||r.data.mesa==null||r.data.mesa==='')throw 0;
+ const fr=parse(r.data.mesa),bs=parse(me.raw),my=me.d;
+ if(!bs.k.length&&my.k.length)throw 0;
+ const bk=new Map(bs.k.map(t=>[t.i,t])),mk=new Map(my.k.map(t=>[t.i,t])),fk=new Set(fr.k.map(t=>t.i));
+ fr.k=fr.k.map(t=>{const m=mk.get(t.i),b=bk.get(t.i);return(m&&b&&cnz(m)!==cnz(b))?m:t});
+ my.k.forEach(t=>{if(!bk.has(t.i)&&!fk.has(t.i)&&fr.k.length<MAXT)fr.k.push(t)});
+ const bw=new Map((bs.wl||[]).map(q=>[q.i,q])),mw=new Map((my.wl||[]).map(q=>[q.i,q]));
+ fr.wl=(fr.wl||[]).map(q=>{const m=mw.get(q.i),b=bw.get(q.i);if(!m||!b)return q;const o=Object.assign({},q);['o','oa','k'].forEach(f=>{if(cnz(m[f])!==cnz(b[f]))o[f]=m[f]});return o});
+ Object.keys(my).forEach(key=>{if(key==='k'||key==='wl')return;if(cnz(my[key])!==cnz(bs[key]))fr[key]=my[key]});
+ return JSON.stringify(fr);
+}
 async function flush(){
  const me=ST,s=sbc();if(!me||!s)return;
  try{
-  if(!me.master){const pl=JSON.stringify(me.d),r=await s.rpc('mover_icones',{cid:String(me.cid),txt:pl});if(r.error)throw r.error;me.raw=pl;me.dirty=0;me.stat='Salvo ✓';me.err='';rtSend('sv');if(ST===me)setStat();return}
+  if(!me.master){const pl=JSON.stringify(me.d);let out=pl;try{out=await mergeFresh(me,s)}catch(_){out=pl}const r=await s.rpc('mover_icones',{cid:String(me.cid),txt:out});if(r.error)throw r.error;me.raw=pl;me.dirty=0;me.stat='Salvo ✓';me.err='';rtSend('sv');if(ST===me)setStat();return}
   if(me.prep){me.stat='Rascunho · jogadores não veem';if(ST===me)setStat();return}
   const used=new Set(),uk=t=>{if(t.m)used.add(t.m);if(t.dm)used.add(t.dm);(t.o||[]).forEach(uk)};me.d.k.forEach(uk);
   Object.keys(me.img.im).forEach(k=>{if(!used.has(k)){delete me.img.im[k];me.imgDirty=true}});
