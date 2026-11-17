@@ -11125,14 +11125,20 @@ function frame(dt){
  cx.globalCompositeOperation='source-over';
 }
 function loop(ts){
- raf=0;if(!on||document.hidden)return;
+ raf=0;if(!on||document.hidden||still())return;
  const gap=perf()?40:24;if(last&&ts-last<gap){raf=requestAnimationFrame(loop);return}
  const dt=Math.min(.033,last?(ts-last)/1000:.016);last=ts;frame(dt);raf=requestAnimationFrame(loop);
 }
 function start(){if(on)return;on=true;size();T=Math.random()*PER*SH.length;last=0;if(still()){frame(0)}else raf=requestAnimationFrame(loop)}
-function stop(){on=false;if(raf)cancelAnimationFrame(raf);raf=0}
-const sync=()=>{if(R.dataset.tema==='prisma')start();else stop()};
-new MutationObserver(sync).observe(R,{attributes:true,attributeFilter:['data-tema']});
+function stop(){on=false;if(raf)cancelAnimationFrame(raf);raf=0;if(cv){cv.width=0;cv.height=0}}
+const sync=records=>{
+ if(R.dataset.tema!=='prisma'){stop();return}
+ if(!on){start();return}
+ if(records&&records.some(m=>m.attributeName==='data-perf'))size();
+ if(still()){if(raf)cancelAnimationFrame(raf);raf=0;last=0;if(!document.hidden)frame(0)}
+ else if(!document.hidden&&!raf){last=0;raf=requestAnimationFrame(loop)}
+};
+new MutationObserver(sync).observe(R,{attributes:true,attributeFilter:['data-tema','data-perf']});
 document.addEventListener('visibilitychange',()=>{if(on&&!document.hidden&&!raf&&!still()){last=0;raf=requestAnimationFrame(loop)}});
 
 /* ---------- item na lista de temas ---------- */
@@ -11393,14 +11399,20 @@ function setup(T0){
  let cv=null,cx=null,W=0,H=0,D=1,raf=0,on=false,last=0,T=0;const S={};
  function size(){D=Math.min(window.devicePixelRatio||1,perf()?1:1.5);const mx=perf()?900:1500,k=Math.min(1,mx/Math.max(innerWidth*D,innerHeight*D));D*=k;W=Math.max(1,Math.round(innerWidth*D));H=Math.max(1,Math.round(innerHeight*D));cv.width=W;cv.height=H;T0.layout(S,W,H,D,cx)}
  window.addEventListener('resize',()=>{if(on){size();if(still())T0.draw(cx,S,W,H,D,0,3)}});
- function loop(ts){raf=0;if(!on||document.hidden)return;
+ function loop(ts){raf=0;if(!on||document.hidden||still())return;
   const gap=perf()?40:24;if(last&&ts-last<gap){raf=requestAnimationFrame(loop);return}
   const dt=Math.min(.033,last?(ts-last)/1000:.016);last=ts;T+=dt;T0.draw(cx,S,W,H,D,dt,T);raf=requestAnimationFrame(loop)}
  function start(){if(on)return;on=true;if(!cv){cv=document.createElement('canvas');cv.className='cv-'+T0.id;cv.setAttribute('aria-hidden','true');document.body.insertBefore(cv,document.body.firstChild);cx=cv.getContext('2d')}
   size();last=0;T=rnd(0,100);if(still())T0.draw(cx,S,W,H,D,0,3);else raf=requestAnimationFrame(loop)}
- function stop(){on=false;if(raf)cancelAnimationFrame(raf);raf=0}
- const sync=()=>{if(R.dataset.tema===T0.id)start();else stop()};
- new MutationObserver(sync).observe(R,{attributes:true,attributeFilter:['data-tema']});
+ function stop(){on=false;if(raf)cancelAnimationFrame(raf);raf=0;if(cv){cv.width=0;cv.height=0}}
+ const sync=records=>{
+  if(R.dataset.tema!==T0.id){stop();return}
+  if(!on){start();return}
+  if(records&&records.some(m=>m.attributeName==='data-perf'))size();
+  if(still()){if(raf)cancelAnimationFrame(raf);raf=0;last=0;if(!document.hidden)T0.draw(cx,S,W,H,D,0,3)}
+  else if(!document.hidden&&!raf){last=0;raf=requestAnimationFrame(loop)}
+ };
+ new MutationObserver(sync).observe(R,{attributes:true,attributeFilter:['data-tema','data-perf']});
  document.addEventListener('visibilitychange',()=>{if(on&&!document.hidden&&!raf&&!still()){last=0;raf=requestAnimationFrame(loop)}});
  pop.insertAdjacentHTML('beforeend','<button type="button" class="thi" role="menuitemradio" aria-checked="false" data-t="'+T0.id+'"><i class="sw" style="background:'+T0.swatch+';border:1px solid #666"></i><span>'+T0.nome+'</span><em>✓</em></button>');
  function ap(){R.dataset.tema=T0.id;pop.querySelectorAll('[data-t]').forEach(x=>x.setAttribute('aria-checked',x.dataset.t===T0.id));const n=document.getElementById('thn');if(n)n.textContent=T0.nome;try{localStorage.setItem('sin-tema3',T0.id)}catch(e){}}
@@ -12713,12 +12725,14 @@ function renderF(){
  const hostP=document.getElementById('dc-pop-body');if(hostP)hostP.innerHTML=panel(list,'f');/* painel na janelinha do botão 🎲, sem bloco próprio */
  Object.keys(by).forEach(w=>{const s=document.createElement('section');s.className='dcz noprint';s.dataset.x='f';s.innerHTML='<h2>🎲 Dados</h2><div class="dcg">'+by[w].map(i=>card(list[i],i,'f')).join('')+'</div>';const an=A[w];if(an&&an[0])an[0].insertAdjacentElement(an[1],s);else main.appendChild(s)});
 }
-setInterval(()=>{if(!document.hidden&&typeof S!=='undefined'&&S!==lastS)try{renderF()}catch(e){}},800);
+/* Atualiza os dados quando a ficha é reconstruída; evita polling contínuo. */
+const buildBeforeDice=build;
+build=function(){const result=buildBeforeDice.apply(this,arguments);try{renderF()}catch(e){}return result};
 
 /* ---- campanha (no lugar do dado universal) ---- */
 function fillC(force){const h=document.getElementById('dcCamp');if(!h||(h.dataset.ok&&!force))return;h.dataset.ok='1';h.innerHTML=panel(getC(),'c')}
 const hub=document.getElementById('hub');
-if(hub){let q=0;new MutationObserver(()=>{if(!q)q=requestAnimationFrame(()=>{q=0;fillC()})}).observe(hub,{childList:true,subtree:true})}
+if(hub){let q=0;new MutationObserver(()=>{if(!q)q=requestAnimationFrame(()=>{q=0;fillC()})}).observe(hub,{childList:true})}
 
 /* ---- eventos ---- */
 const draw=x=>{x==='f'?renderF():fillC(true)};
@@ -12889,13 +12903,19 @@ function setup(T0){
  let cv=null,cx=null,W=0,H=0,D=1,raf=0,on=false,last=0,T=0;const S={};
  function size(){D=Math.min(window.devicePixelRatio||1,perf()?1:1.5);const k=Math.min(1,(perf()?900:1500)/Math.max(innerWidth*D,innerHeight*D));D*=k;W=Math.max(1,Math.round(innerWidth*D));H=Math.max(1,Math.round(innerHeight*D));cv.width=W;cv.height=H;T0.layout(S,W,H,D)}
  addEventListener('resize',()=>{if(on){size();if(still())T0.draw(cx,S,W,H,D,0,3)}});
- function loop(ts){raf=0;if(!on||document.hidden)return;if(last&&ts-last<(perf()?40:24)){raf=requestAnimationFrame(loop);return}
+ function loop(ts){raf=0;if(!on||document.hidden||still())return;if(last&&ts-last<(perf()?40:24)){raf=requestAnimationFrame(loop);return}
   const dt=Math.min(.033,last?(ts-last)/1000:.016);last=ts;T+=dt;T0.draw(cx,S,W,H,D,dt,T);raf=requestAnimationFrame(loop)}
  function start(){if(on)return;on=true;if(!cv){cv=document.createElement('canvas');cv.className='cv-'+T0.id;cv.setAttribute('aria-hidden','true');document.body.insertBefore(cv,document.body.firstChild);cx=cv.getContext('2d')}
   size();last=0;T=rnd(0,100);if(still())T0.draw(cx,S,W,H,D,0,3);else raf=requestAnimationFrame(loop)}
- function stop(){on=false;if(raf)cancelAnimationFrame(raf);raf=0}
- const sync=()=>{if(R.dataset.tema===T0.id)start();else stop()};
- new MutationObserver(sync).observe(R,{attributes:true,attributeFilter:['data-tema']});
+ function stop(){on=false;if(raf)cancelAnimationFrame(raf);raf=0;if(cv){cv.width=0;cv.height=0}}
+ const sync=records=>{
+  if(R.dataset.tema!==T0.id){stop();return}
+  if(!on){start();return}
+  if(records&&records.some(m=>m.attributeName==='data-perf'))size();
+  if(still()){if(raf)cancelAnimationFrame(raf);raf=0;last=0;if(!document.hidden)T0.draw(cx,S,W,H,D,0,3)}
+  else if(!document.hidden&&!raf){last=0;raf=requestAnimationFrame(loop)}
+ };
+ new MutationObserver(sync).observe(R,{attributes:true,attributeFilter:['data-tema','data-perf']});
  document.addEventListener('visibilitychange',()=>{if(on&&!document.hidden&&!raf&&!still()){last=0;raf=requestAnimationFrame(loop)}});
  pop.insertAdjacentHTML('beforeend','<button type="button" class="thi" role="menuitemradio" aria-checked="false" data-t="'+T0.id+'"><i class="sw" style="background:'+T0.swatch+';border:1px solid #666"></i><span>'+T0.nome+'</span><em>✓</em></button>');
  function ap(){R.dataset.tema=T0.id;pop.querySelectorAll('[data-t]').forEach(x=>x.setAttribute('aria-checked',x.dataset.t===T0.id));const n=document.getElementById('thn');if(n)n.textContent=T0.nome;try{localStorage.setItem('sin-tema3',T0.id)}catch(e){}}
@@ -13053,13 +13073,19 @@ function setup(T0){
  let cv=null,cx=null,W=0,H=0,D=1,raf=0,on=false,last=0,T=0;const S={};
  function size(){D=Math.min(window.devicePixelRatio||1,perf()?1:1.5);const k=Math.min(1,(perf()?900:1500)/Math.max(innerWidth*D,innerHeight*D));D*=k;W=Math.max(1,Math.round(innerWidth*D));H=Math.max(1,Math.round(innerHeight*D));cv.width=W;cv.height=H;T0.layout(S,W,H,D)}
  addEventListener('resize',()=>{if(on){size();if(still())T0.draw(cx,S,W,H,D,0,3)}});
- function loop(ts){raf=0;if(!on||document.hidden)return;if(last&&ts-last<(perf()?40:24)){raf=requestAnimationFrame(loop);return}
+ function loop(ts){raf=0;if(!on||document.hidden||still())return;if(last&&ts-last<(perf()?40:24)){raf=requestAnimationFrame(loop);return}
   const dt=Math.min(.033,last?(ts-last)/1000:.016);last=ts;T+=dt;T0.draw(cx,S,W,H,D,dt,T);raf=requestAnimationFrame(loop)}
  function start(){if(on)return;on=true;if(!cv){cv=document.createElement('canvas');cv.className='cv-'+T0.id;cv.setAttribute('aria-hidden','true');document.body.insertBefore(cv,document.body.firstChild);cx=cv.getContext('2d')}
   size();last=0;T=rnd(0,100);if(still())T0.draw(cx,S,W,H,D,0,3);else raf=requestAnimationFrame(loop)}
- function stop(){on=false;if(raf)cancelAnimationFrame(raf);raf=0}
- const sync=()=>{if(R.dataset.tema===T0.id)start();else stop()};
- new MutationObserver(sync).observe(R,{attributes:true,attributeFilter:['data-tema']});
+ function stop(){on=false;if(raf)cancelAnimationFrame(raf);raf=0;if(cv){cv.width=0;cv.height=0}}
+ const sync=records=>{
+  if(R.dataset.tema!==T0.id){stop();return}
+  if(!on){start();return}
+  if(records&&records.some(m=>m.attributeName==='data-perf'))size();
+  if(still()){if(raf)cancelAnimationFrame(raf);raf=0;last=0;if(!document.hidden)T0.draw(cx,S,W,H,D,0,3)}
+  else if(!document.hidden&&!raf){last=0;raf=requestAnimationFrame(loop)}
+ };
+ new MutationObserver(sync).observe(R,{attributes:true,attributeFilter:['data-tema','data-perf']});
  document.addEventListener('visibilitychange',()=>{if(on&&!document.hidden&&!raf&&!still()){last=0;raf=requestAnimationFrame(loop)}});
  pop.insertAdjacentHTML('beforeend','<button type="button" class="thi" role="menuitemradio" aria-checked="false" data-t="'+T0.id+'"><i class="sw" style="background:'+T0.swatch+';border:1px solid #666"></i><span>'+T0.nome+'</span><em>✓</em></button>');
  function ap(){R.dataset.tema=T0.id;pop.querySelectorAll('[data-t]').forEach(x=>x.setAttribute('aria-checked',x.dataset.t===T0.id));const n=document.getElementById('thn');if(n)n.textContent=T0.nome;try{localStorage.setItem('sin-tema3',T0.id)}catch(e){}}
@@ -13228,13 +13254,19 @@ function setup(T0){
  let cv=null,cx=null,W=0,H=0,D=1,raf=0,on=false,last=0,T=0;const S={};
  function size(){D=Math.min(window.devicePixelRatio||1,perf()?1:1.5);const k=Math.min(1,(perf()?900:1500)/Math.max(innerWidth*D,innerHeight*D));D*=k;W=Math.max(1,Math.round(innerWidth*D));H=Math.max(1,Math.round(innerHeight*D));cv.width=W;cv.height=H;T0.layout(S,W,H,D)}
  addEventListener('resize',()=>{if(on){size();if(still())T0.draw(cx,S,W,H,D,0,3)}});
- function loop(ts){raf=0;if(!on||document.hidden)return;if(last&&ts-last<(perf()?40:24)){raf=requestAnimationFrame(loop);return}
+ function loop(ts){raf=0;if(!on||document.hidden||still())return;if(last&&ts-last<(perf()?40:24)){raf=requestAnimationFrame(loop);return}
   const dt=Math.min(.033,last?(ts-last)/1000:.016);last=ts;T+=dt;T0.draw(cx,S,W,H,D,dt,T);raf=requestAnimationFrame(loop)}
  function start(){if(on)return;on=true;if(!cv){cv=document.createElement('canvas');cv.className='cv-'+T0.id;cv.setAttribute('aria-hidden','true');document.body.insertBefore(cv,document.body.firstChild);cx=cv.getContext('2d')}
   size();last=0;T=rnd(0,100);if(still())T0.draw(cx,S,W,H,D,0,3);else raf=requestAnimationFrame(loop)}
- function stop(){on=false;if(raf)cancelAnimationFrame(raf);raf=0}
- const sync=()=>{if(R.dataset.tema===T0.id)start();else stop()};
- new MutationObserver(sync).observe(R,{attributes:true,attributeFilter:['data-tema']});
+ function stop(){on=false;if(raf)cancelAnimationFrame(raf);raf=0;if(cv){cv.width=0;cv.height=0}}
+ const sync=records=>{
+  if(R.dataset.tema!==T0.id){stop();return}
+  if(!on){start();return}
+  if(records&&records.some(m=>m.attributeName==='data-perf'))size();
+  if(still()){if(raf)cancelAnimationFrame(raf);raf=0;last=0;if(!document.hidden)T0.draw(cx,S,W,H,D,0,3)}
+  else if(!document.hidden&&!raf){last=0;raf=requestAnimationFrame(loop)}
+ };
+ new MutationObserver(sync).observe(R,{attributes:true,attributeFilter:['data-tema','data-perf']});
  document.addEventListener('visibilitychange',()=>{if(on&&!document.hidden&&!raf&&!still()){last=0;raf=requestAnimationFrame(loop)}});
  pop.insertAdjacentHTML('beforeend','<button type="button" class="thi" role="menuitemradio" aria-checked="false" data-t="'+T0.id+'"><i class="sw" style="background:'+T0.swatch+';border:1px solid #666"></i><span>'+T0.nome+'</span><em>✓</em></button>');
  function ap(){R.dataset.tema=T0.id;pop.querySelectorAll('[data-t]').forEach(x=>x.setAttribute('aria-checked',x.dataset.t===T0.id));const n=document.getElementById('thn');if(n)n.textContent=T0.nome;try{localStorage.setItem('sin-tema3',T0.id)}catch(e){}}
@@ -13448,13 +13480,19 @@ function setup(T0){
  let cv=null,cx=null,W=0,H=0,D=1,raf=0,on=false,last=0,T=0;const S={};
  function size(){D=Math.min(window.devicePixelRatio||1,perf()?1:1.5);const k=Math.min(1,(perf()?900:1500)/Math.max(innerWidth*D,innerHeight*D));D*=k;W=Math.max(1,Math.round(innerWidth*D));H=Math.max(1,Math.round(innerHeight*D));cv.width=W;cv.height=H;T0.layout(S,W,H,D)}
  addEventListener('resize',()=>{if(on){size();if(still())T0.draw(cx,S,W,H,D,0,3)}});
- function loop(ts){raf=0;if(!on||document.hidden)return;if(last&&ts-last<(perf()?40:24)){raf=requestAnimationFrame(loop);return}
+ function loop(ts){raf=0;if(!on||document.hidden||still())return;if(last&&ts-last<(perf()?40:24)){raf=requestAnimationFrame(loop);return}
   const dt=Math.min(.033,last?(ts-last)/1000:.016);last=ts;T+=dt;T0.draw(cx,S,W,H,D,dt,T);raf=requestAnimationFrame(loop)}
  function start(){if(on)return;on=true;if(!cv){cv=document.createElement('canvas');cv.className='cv-'+T0.id;cv.setAttribute('aria-hidden','true');document.body.insertBefore(cv,document.body.firstChild);cx=cv.getContext('2d')}
   size();last=0;T=rnd(0,100);if(still())T0.draw(cx,S,W,H,D,0,3);else raf=requestAnimationFrame(loop)}
- function stop(){on=false;if(raf)cancelAnimationFrame(raf);raf=0}
- const sync=()=>{if(R.dataset.tema===T0.id)start();else stop()};
- new MutationObserver(sync).observe(R,{attributes:true,attributeFilter:['data-tema']});
+ function stop(){on=false;if(raf)cancelAnimationFrame(raf);raf=0;if(cv){cv.width=0;cv.height=0}}
+ const sync=records=>{
+  if(R.dataset.tema!==T0.id){stop();return}
+  if(!on){start();return}
+  if(records&&records.some(m=>m.attributeName==='data-perf'))size();
+  if(still()){if(raf)cancelAnimationFrame(raf);raf=0;last=0;if(!document.hidden)T0.draw(cx,S,W,H,D,0,3)}
+  else if(!document.hidden&&!raf){last=0;raf=requestAnimationFrame(loop)}
+ };
+ new MutationObserver(sync).observe(R,{attributes:true,attributeFilter:['data-tema','data-perf']});
  document.addEventListener('visibilitychange',()=>{if(on&&!document.hidden&&!raf&&!still()){last=0;raf=requestAnimationFrame(loop)}});
  pop.insertAdjacentHTML('beforeend','<button type="button" class="thi" role="menuitemradio" aria-checked="false" data-t="'+T0.id+'"><i class="sw" style="background:'+T0.swatch+';border:1px solid #666"></i><span>'+T0.nome+'</span><em>✓</em></button>');
  function ap(){R.dataset.tema=T0.id;pop.querySelectorAll('[data-t]').forEach(x=>x.setAttribute('aria-checked',x.dataset.t===T0.id));const n=document.getElementById('thn');if(n)n.textContent=T0.nome;try{localStorage.setItem('sin-tema3',T0.id)}catch(e){}}
